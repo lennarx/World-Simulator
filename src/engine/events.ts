@@ -1,6 +1,7 @@
 // Eventos de shock con condiciones declarativas (src/data/events.json).
 import { CFG } from '../data/config';
 import { EVENTOS, type Condicion, type Evento } from './data';
+import { peorVecino, relacionPromedio, vecinosDe } from './diplomacy';
 import type { Rng } from './rng';
 import type { AreaId, EntradaParte, GameState, Indicadores } from './types';
 import { clamp } from './util';
@@ -22,6 +23,12 @@ export function resolverVar(s: GameState, v: string): number {
       return s.escandaloActivo;
     case 'primaRiesgo':
       return s.primaRiesgo;
+    case 'relPromedio':
+      return relacionPromedio(s.relaciones);
+    case 'relMinVecinos': {
+      const v = peorVecino(s);
+      return v ? s.relaciones[v]! : 100;
+    }
     default:
       throw new Error(`Variable de condición desconocida: ${v}`);
   }
@@ -60,12 +67,25 @@ function aplicarDeltas(s: GameState, efectos: Partial<Indicadores>, mult = 1): v
   s.ind.reservas = Math.max(0, s.ind.reservas);
 }
 
-export function aplicarEvento(s: GameState, e: Evento, report: EntradaParte[]): void {
+export function aplicarEvento(s: GameState, e: Evento, report: EntradaParte[], rng?: Rng): void {
   const mult = e.commodity ? s.perfil.sensibilidadCommodities : 1;
   aplicarDeltas(s, e.efectos, mult);
   if (e.temporal) s.temporales.push({ id: e.id, efectos: e.temporal.efectos, turnosRestantes: e.temporal.duracion });
   if (e.prima) s.primaRiesgo = Math.max(CFG.prima.min, s.primaRiesgo + e.prima);
   if (e.escandalo) s.escandaloActivo = CFG.eventos.duracionEscandalo;
+  if (e.diplomacia) {
+    const { objetivo, delta } = e.diplomacia;
+    const vecinos = vecinosDe(s.paisId).filter((v) => v in s.relaciones);
+    const objetivos =
+      objetivo === 'todos'
+        ? Object.keys(s.relaciones)
+        : objetivo === 'vecinoPeor'
+          ? [peorVecino(s)].filter((x): x is string => !!x)
+          : vecinos.length && rng
+            ? [vecinos[Math.floor(rng.next() * vecinos.length)]!]
+            : [];
+    for (const id of objetivos) s.relaciones[id] = clamp(s.relaciones[id]! + delta, -100, 100);
+  }
   report.push({ tag: e.tag, texto: e.texto });
 }
 
@@ -89,7 +109,7 @@ export function rollEvents(s: GameState, rng: Rng, report: EntradaParte[]): Even
     const candidatos = EVENTOS.filter((e) => !ocurridos.includes(e));
     const e = rng.pickWeighted(candidatos, (x) => pesoEvento(s, x, s.eventMult));
     if (!e) break;
-    aplicarEvento(s, e, report);
+    aplicarEvento(s, e, report, rng);
     ocurridos.push(e);
   }
   return ocurridos;

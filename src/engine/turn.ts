@@ -3,6 +3,7 @@ import { CFG } from '../data/config';
 import { LINEAS_ECONOMIA, LINEAS_GOBIERNO } from '../data/texts';
 import { applyBudget, sanitizarDecisiones } from './budget';
 import { aplicarConcesiones, resolverLey } from './congress';
+import { aplicarAcciones, resolverTratado, sanitizarDiplomacia, stepCrisis, stepRelaciones } from './diplomacy';
 import { stepEconomy } from './economy';
 import { checkEnding } from './endings';
 import { aplicarTemporales, rollEvents } from './events';
@@ -14,7 +15,16 @@ import { round } from './util';
 
 /** Decisiones "no tocar nada": mismo presupuesto, impuestos y financiamiento que el turno anterior. */
 export function decisionesActuales(s: GameState): Decisiones {
-  return { presupuesto: { ...s.presupuesto }, impuestos: s.impuestos, financiamiento: s.financiamiento, ley: null, concesiones: {} };
+  return {
+    presupuesto: { ...s.presupuesto },
+    impuestos: s.impuestos,
+    financiamiento: s.financiamiento,
+    ley: null,
+    concesiones: {},
+    diplomacia: [],
+    tratado: null,
+    respuestaCrisis: null,
+  };
 }
 
 export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): ResultadoTurno {
@@ -22,7 +32,7 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
   const s: GameState = structuredClone(prev);
   const rng = createRng(s.rng);
   const report: EntradaParte[] = [];
-  const d = sanitizarDecisiones(decisionesCrudas);
+  const d: Decisiones = { ...sanitizarDecisiones(decisionesCrudas), ...sanitizarDiplomacia(s, decisionesCrudas) };
   s.turno += 1;
 
   const antes = { ...prev.ind };
@@ -35,7 +45,11 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
 
   // 2. Congreso.
   aplicarConcesiones(s, d.concesiones, report);
-  resolverLey(s, d, rng, report);
+  if (d.tratado) resolverTratado(s, d, rng, report);
+  else resolverLey(s, d, rng, report);
+
+  // 2b. Diplomacia: acciones del turno.
+  aplicarAcciones(s, d.diplomacia, report);
 
   // 3. Economía.
   stepEconomy(s, fiscal, rng);
@@ -43,6 +57,10 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
   // 4. Eventos (primero los temporales vigentes, después los nuevos).
   aplicarTemporales(s);
   rollEvents(s, rng, report);
+
+  // 4b. Relaciones (deriva y obligaciones) y crisis de frontera.
+  stepRelaciones(s, fiscal, report);
+  stepCrisis(s, d.respuestaCrisis, rng, report);
 
   // 5. Política y sociedad.
   stepPolitics(s, rng);

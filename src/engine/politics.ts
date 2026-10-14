@@ -1,5 +1,6 @@
 // Aprobación, gobernabilidad, estabilidad social, afinidad de bloques y capacidad militar.
 import { CFG } from '../data/config';
+import { bonusDiplomatico } from './diplomacy';
 import { deltaGastoPonderado } from './economy';
 import type { Rng } from './rng';
 import type { GameState } from './types';
@@ -64,6 +65,6 @@ export function stepPolitics(s: GameState, rng: Rng): void {
   // Gancho Fase 3: la capacidad militar sigue (lento) al gasto en defensa relativo a la base.
   const base = Math.max(0.1, s.presupuestoBase.defensa);
   const relativo = (s.presupuesto.defensa - base) / base;
-  const milObjetivo = clamp(s.inicial.capacidadMilitar + relativo * P.militarPorDefensa, 0, 100);
+  const milObjetivo = clamp(s.inicial.capacidadMilitar + relativo * P.militarPorDefensa + bonusDiplomatico(s).militar, 0, 100);
   i.capacidadMilitar = clamp(approach(i.capacidadMilitar, milObjetivo, P.militarSuavizado), 0, 100);
 }

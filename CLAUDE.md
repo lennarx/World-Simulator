@@ -70,9 +70,11 @@ public/     ← icon.svg (fuente) + PNG generados para la PWA
 decisiones (UI o estrategia del sim)
    └─► advanceTurn(state, decisions)            src/engine/turn.ts
          1. budget.applyBudget      → déficit, financiamiento (deuda/emisión), servicio de deuda
-         2. congress.resolveBill    → votación probabilística de la ley propuesta (si hay)
-         3. economy.stepEconomy     → crecimiento, inflación, desempleo, reservas, deuda/PBI
+         2. congress.resolverLey / diplomacy.resolverTratado → UNA votación por turno (el tratado desplaza a la ley)
+         2b. diplomacy.aplicarAcciones → visitas, cooperación, protestas, gestos
+         3. economy.stepEconomy     → crecimiento, inflación, desempleo, reservas, deuda/PBI (+ bonusDiplomatico)
          4. events.rollEvents       → eventos con condiciones (shocks), efectos inmediatos y temporales
+         4b. diplomacy.stepRelaciones + stepCrisis → deriva de relaciones, obligaciones, crisis de frontera
          5. politics.stepPolitics   → aprobación, gobernabilidad, estabilidad social, capacidad militar
          6. pressure.stepPressure   → desgaste acumulado (empuja hacia el final)
          7. endings.checkEnding     → derrota anticipada o fin de mandato (+ legado y reelección)
@@ -112,12 +114,31 @@ decisiones (UI o estrategia del sim)
 - **Final**: legado = suma ponderada de 5 componentes (0–100) medidos mayormente como **mejora vs. el
   inicio** (así un país difícil no queda condenado). Reelección si aprobación final + ruido ≥ umbral.
 
+### Modelo (Fase 2 — Diplomacia)
+- **Relaciones** (`state.relaciones`, -100..100) con los otros 11 países; base en `src/data/relations.json`
+  (pares no listados = `CFG.diplomacia.relacionDefault`). Derivan hacia la base cada turno.
+  Vecinos y `pesoComercial` en `src/data/geografia.json`.
+- **Acciones** (máx. 2 por turno): `visita` (+rel con rendimientos decrecientes), `cooperacion` (+rel, +estabilidad,
+  requiere rel ≥ 0), `protesta` (−rel; +aprobación si es contra quien tenés crisis), `gesto` (+aprobación, −rel).
+- **Tratados** (se votan en el Congreso con `congress.votar`, apoyo por tipo de bloque en CFG; requieren relación mínima;
+  no se firma con quien tenés crisis): `comercio` (crecimiento/reservas × pesoComercial, con techo),
+  `defensa` (+capacidad militar una vez; escalar crisis con terceros cuesta la mitad), `integracion` (−prima y
+  +crecimiento una vez; obligación: no emitir y déficit ≤ máx., si no, se castiga la relación con los socios).
+- **Crisis de frontera** (`state.crisis`): nace con el peor vecino si la relación < umbral. Respuestas: negociar
+  (baja nivel), escalar (sube nivel, rally de aprobación, cuesta reservas/crecimiento/prima), ignorar. Cuesta por
+  turno según nivel. **Nivel 3 = gancho de Fase 3** (hoy: mediación internacional que puede bajarla).
+- **Legado**: la mejora de la relación promedio suma a "soberanía" (prestigio regional).
+- Eventos con `tag: DIPLOMACIA` y campo `diplomacia: { objetivo, delta }`; condiciones `relMinVecinos`, `relPromedio`.
+
 ### Dificultad por país (difícil *de forma distinta*)
 | País | Problema principal | Cómo se modela |
 |---|---|---|
 | Argentina | Inflación con inercia, reservas flacas | `inercia` alta, inflación inicial alta, reservas bajas, emisión pega más |
 | Perú | Congreso fragmentado y hostil | muchos bloques chicos, afinidad baja, disciplina baja, `riesgoJuicio` alto |
-| Brasil | Deuda alta y gasto rígido | deuda/PBI alta, tasa base alta, presupuesto base rígido (cortar duele más) |
+| Brasil | Deuda alta y gasto rígido | deuda/PBI alta, tasa base alta (9), presupuesto base rígido (cortar duele más) |
+
+En Fase 2 además: Perú casi no logra ratificar tratados (Congreso hostil); Brasil tiene 9 vecinos (más frentes de
+crisis, p. ej. relación baja con Venezuela); Argentina arranca tensa con Chile.
 
 ---
 
@@ -140,6 +161,13 @@ decisiones (UI o estrategia del sim)
 1. Objeto en `src/data/bills.json`: `id`, `nombre`, `descripcion`, `apoyo` por tipo de bloque, `efectos`
    (inmediatos sobre indicadores) y `mods` (modificadores permanentes: `recaudacion`, `potencial`, `prima`, `riesgoEscandalo`, ...).
 2. Si agregás un `mod` nuevo, sumalo al tipo `Mods` en `engine/types.ts` y usalo en el módulo correspondiente.
+
+### Cómo agregar una acción diplomática o un tratado
+1. Sumá el tipo en `TipoAccion` / `TipoTratado` (`engine/types.ts`) y en `TIPOS_ACCION` / `TIPOS_TRATADO` (`engine/diplomacy.ts`).
+2. Sus números en `CFG.diplomacia.acciones` / `CFG.diplomacia.tratados` (un tratado necesita `relacionMin` y `apoyo` por tipo de bloque).
+3. Efecto: acción en `aplicarAcciones`; tratado en `bonusDiplomatico` (si es económico) o en `resolverTratado` (si es one-shot).
+4. UI: listas `ACCIONES` / `NOMBRE_TRATADO` / `AYUDA_TRATADO` en `src/ui/screens/Diplomacia.tsx`.
+5. Tests en `tests/engine/diplomacy.test.ts` y `npm run sim`.
 
 ### Cómo habilitar un país
 1. Completar su JSON en `src/data/countries/` (copiá la forma de `argentina.json`).
@@ -193,7 +221,47 @@ peru       nada          13%      12%   47.1   gris 52 · juicio 34
 Cada país muere de algo distinto: AR por colapso inflacionario, PE por juicio político, BR porque ajustar no rinde.
 Puntos flojos conocidos: "mandato gris" es el final más común; Brasil-austeridad nunca gana (¿demasiada rigidez?).
 
-### Fase 2 — Diplomacia (pendiente, NO arrancar sin OK)
+### Fase 2 — Diplomacia — ✅ HECHA (esperando OK del arquitecto para Fase 3)
+- [x] Datos: `geografia.json` (vecinos reales + pesoComercial ilustrativo), `relations.json`, bloque `CFG.diplomacia`,
+      4 eventos `DIPLOMACIA`
+- [x] Motor: `engine/diplomacy.ts` (acciones, tratados, crisis, deriva, bonus), `congress.votar` genérico,
+      integración en `turn`, `economy`, `politics`, `events`, `score`; `STATE_VERSION` 2
+- [x] Guardado: `SAVE_VERSION` 2 con migración v1→v2 (`migrarSave` en `src/ui/save.ts`)
+- [x] UI: pantalla Diplomacia (crisis, acciones, tratados con votos esperados, lista de países), pestaña nueva,
+      alertas en el Panel, resumen regional en el Final
+- [x] Fixes de UI: `scroll-padding` para que el foco no quede bajo la barra fija; toast arriba y el de offline se cierra solo
+- [x] Sim: estrategias `aislacionista` e `integracionista`; todas con política diplomática; columnas crisis/nivel 3/tratados
+- [x] Tests: 46 (nuevos: `tests/engine/diplomacy.test.ts`, `tests/save.test.ts`)
+
+**Verificado (Chromium headless 390×844):** acciones (límite 2), propuesta y ratificación de tratado, entradas
+DIPLOMACIA en el parte, relaciones conservadas tras recarga offline, partida completa, sin scroll horizontal ni errores.
+
+**Balance Fase 2 (400 partidas, semillas 1000–1399; crisis = % partidas con crisis, niv3 = llegaron a nivel 3):**
+```
+país       estrategia       victoria reelec legado turnos NaN crisis niv3 trat  finales
+argentina  equilibrada       55%      28%   57.0  16.0    0    0%   0%  5.0  gris 46% · reel 28% · cumpl 27%
+argentina  populista          0%       0%   31.2  11.2    0   69%  56%  0.0  colap 84% · gris 14% · golpe 1% · juicio 0%
+argentina  austeridad        36%       0%   50.5  16.0    0    0%   0%  4.9  gris 64% · cumpl 36% · juicio 0%
+argentina  nada               3%       1%   36.1  14.6    0   22%   0%  0.0  gris 77% · colap 17% · cumpl 2% · juicio 2% · reel 1% · golpe 0%
+argentina  aislacionista     41%      23%   53.6  16.0    0   22%   0%  0.0  gris 59% · reel 23% · cumpl 18%
+argentina  integracionista   40%      16%   50.4  16.0    0    0%   0% 11.2  gris 60% · cumpl 24% · reel 16%
+brasil     equilibrada       71%      37%   59.1  16.0    0    0%   0%  8.1  reel 37% · cumpl 34% · gris 29%
+brasil     populista          0%       0%   28.9  11.5    0   62%  49%  0.0  colap 100% · gris 0%
+brasil     austeridad         0%       0%   46.4  16.0    0    1%   0%  4.6  gris 100% · reel 0%
+brasil     nada               0%       1%   28.7  16.0    0   66%   0%  0.0  gris 100% · reel 1%
+brasil     aislacionista     48%      34%   55.8  16.0    0   67%   0%  0.0  gris 52% · reel 34% · cumpl 14%
+brasil     integracionista   54%      26%   56.7  16.0    0    0%   0% 11.4  gris 46% · cumpl 29% · reel 26%
+peru       equilibrada       62%      42%   58.1  15.9    0    2%   0%  0.1  reel 42% · gris 36% · cumpl 20% · juicio 2%
+peru       populista         11%      34%   40.7  14.9    0   77%  69%  0.0  reel 34% · colap 33% · gris 33% · juicio 1%
+peru       austeridad         5%       4%   48.3  14.9    0    2%   0%  0.0  gris 64% · juicio 31% · reel 4% · cumpl 2%
+peru       nada              12%      15%   47.2  15.0    0   71%   0%  0.0  gris 61% · juicio 24% · reel 15% · cumpl 1%
+peru       aislacionista     53%      41%   56.2  16.0    0   75%   0%  0.0  gris 45% · reel 41% · cumpl 13% · juicio 2%
+peru       integracionista   70%      43%   59.2  15.9    0    2%   0%  2.2  reel 43% · gris 29% · cumpl 27% · juicio 2%
+```
+Lectura: ser activo en diplomacia vale ~10–20 pp de victoria vs. aislarse, sin dominar (integracionista resigna leyes).
+Escalar crisis (populista) llega a nivel 3 en ~50–70% de partidas. Perú casi no ratifica tratados (Congreso hostil).
+Puntos flojos: Brasil-equilibrada en el límite (71%); Brasil-austeridad y "nada" nunca ganan; "gris" sigue siendo común.
+
 ### Fase 3 — Militar (pendiente)
 ### Fase 4 — 12 países con IA (pendiente)
 ### Fase 5 — Eventos regionales y puntaje final (pendiente)
@@ -265,8 +333,9 @@ Ver "Estado del proyecto". El próximo paso concreto está anotado al final de e
 > CFG único, RNG con semilla, tests y `npm run sim` con 400 partidas por estrategia). Al terminar: tests,
 > sim, commit, actualizá el checklist de CLAUDE.md y resumí en ≤10 líneas. No arranques la fase siguiente sin OK.
 
-**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 2 (Diplomacia), sección 6. Antes, opcional: revisar
-balance de Brasil-austeridad (`perfil.rigidez` en `brasil.json`) y la frecuencia de "mandato gris".
+**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 3 (Militar), sección 6. El gancho está en
+`diplomacy.stepCrisis` (nivel 3) y `ind.capacidadMilitar`; `state.guerra?` ya existe en los tipos.
+Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia de "mandato gris".
 
 ---
 
@@ -287,6 +356,13 @@ balance de Brasil-austeridad (`perfil.rigidez` en `brasil.json`) y la frecuencia
   por olvido cuando suben los intereses. Es estado de UI, no del motor.
 - Estrategias del sim (`src/sim/strategies.ts`): equilibrada, populista, austeridad, nada. En Fase 4 se reutilizan como
   base de la IA por "postura".
+
+- Fase 2: una sola votación por turno (ley O tratado) para que firmar tratados tenga costo de oportunidad.
+- Beneficios de tratados con techo / no apilables (comercio con tope; integración y defensa cuentan una vez): sin
+  eso, firmar con todos dominaba (Brasil integracionista ganaba 100%).
+- Bono de gobernabilidad por ratificar (2) menor que por ley (6): se firman muchos más tratados que leyes.
+- Brasil: tasa base 7→9 para que su problema (deuda cara) pese de verdad; antes era el país más fácil.
+- La guerra NO existe en Fase 2: la crisis nivel 3 queda como gancho con mediación internacional.
 
 ### Pendiente / no verificado
 - Instalación de la PWA en un celular real (Android/iOS) — solo se puede verificar a mano.

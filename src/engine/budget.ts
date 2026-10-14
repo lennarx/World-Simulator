@@ -55,6 +55,10 @@ export function sanitizarDecisiones(d: Decisiones): Decisiones {
     financiamiento: d.financiamiento === 'emision' || d.financiamiento === 'mixto' ? d.financiamiento : 'deuda',
     ley: d.ley ?? null,
     concesiones,
+    // La parte diplomática se valida contra el estado en diplomacy.sanitizarDiplomacia.
+    diplomacia: d.diplomacia ?? [],
+    tratado: d.tratado ?? null,
+    respuestaCrisis: d.respuestaCrisis ?? null,
   };
 }
 

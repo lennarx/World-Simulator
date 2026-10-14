@@ -29,6 +29,8 @@ export interface Evento {
   efectos: Partial<Indicadores>;
   temporal?: { efectos: Partial<Indicadores>; duracion: number };
   prima?: number;
+  /** Efecto sobre relaciones (Fase 2). */
+  diplomacia?: { objetivo: 'vecinoPeor' | 'vecinoAleatorio' | 'todos'; delta: number };
   texto: string;
 }
 

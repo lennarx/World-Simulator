@@ -166,6 +166,59 @@ export const CFG = {
     juicioPorDesaprobacion: 0.006, // por punto de aprobación bajo 40
   },
 
+  // ---------------------------------------------------------------- Diplomacia (Fase 2)
+  diplomacia: {
+    relacionDefault: 20, // pares que no figuran en relations.json
+    deriva: 0.06, // fracción del gap hacia la relación base que se cierra por turno
+    accionesPorTurno: 2,
+    bonoRatificacion: 2, // gobernabilidad por tratado ratificado (menos que una ley: se firman muchos)
+    acciones: {
+      // Ganancia con rendimientos decrecientes: se multiplica por (100 - relación) / 100.
+      visita: { relacion: 10 },
+      cooperacion: { relacion: 6, estabilidad: 1.5, relacionMin: 0 },
+      protesta: { relacion: -10, aprobacionEnCrisis: 2.5 },
+      gesto: { relacion: -8, aprobacion: 2 }, // "pegarle al vecino" rinde puertas adentro
+    },
+    tratados: {
+      comercio: {
+        relacionMin: 30,
+        crecimiento: 0.35, // pp de crecimiento × pesoComercial del socio
+        reservas: 0.06, // meses por turno × pesoComercial
+        // Techos: abrir mercados rinde, pero con rendimientos decrecientes (si no, firmar todo domina).
+        topeCrecimiento: 0.3,
+        topeReservas: 0.08,
+        apoyo: { oficialismo: 20, aliado: 15, centro: 15, opositor: 0, regional: 10 },
+      },
+      defensa: {
+        relacionMin: 50,
+        militar: 6, // puntos de capacidad militar objetivo (una sola vez, no se apila)
+        alivioCrisis: 0.5, // multiplicador de los costos de escalar si tenés aliado defensivo
+        apoyo: { oficialismo: 15, aliado: 10, centro: 0, opositor: -10, regional: 0 },
+      },
+      integracion: {
+        relacionMin: 35,
+        crecimiento: 0.2, // una sola vez: pertenecer al bloque, no importa con cuántos socios
+        prima: -0.5, // pp de prima de riesgo (solo al firmar el primer acuerdo)
+        deficitMax: 4, // obligación: déficit máximo
+        castigoRelacion: 4, // por turno que incumplís (emitir o pasarte del déficit)
+        apoyo: { oficialismo: 20, aliado: 10, centro: 5, opositor: -15, regional: -5 },
+      },
+    },
+    crisis: {
+      umbral: 12, // relación con un vecino por debajo de esto puede disparar una crisis
+      probBase: 0.03,
+      probPorPunto: 0.006,
+      probMax: 0.35,
+      relacionResuelta: 25, // con esta relación la crisis se cierra sola
+      negociar: { aprobacion: -2, relacion: 8 },
+      escalar: { aprobacion: 3, reservas: -0.4, crecimiento: -0.4, prima: 0.3, relacion: -10 },
+      ignorar: { estabilidad: -2 },
+      porNivel: { reservas: -0.12, crecimiento: -0.15, estabilidad: -0.8 }, // por turno y por nivel
+      mediacionNivel3: 0.3, // chance por turno de que la mediación internacional baje un nivel
+    },
+    legadoPorRelacion: 0.2, // puntos de soberanía por punto de mejora de la relación promedio
+  },
+
   // ---------------------------------------------------------------- Legado
   legado: {
     pesos: { crecimiento: 0.2, estabilidad: 0.2, bienestar: 0.2, soberania: 0.2, aprobacion: 0.2 },

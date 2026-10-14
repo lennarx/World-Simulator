@@ -70,6 +70,11 @@ export function Congreso() {
 
       <fieldset className="stack">
         <legend>Ley a impulsar este trimestre</legend>
+        {draft.tratado && (
+          <p className="warn small">
+            Este trimestre el Congreso vota un tratado ({draft.tratado.tipo}). Si elegís una ley, se retira el tratado.
+          </p>
+        )}
         {votos && (
           <p aria-live="polite">
             Votos esperados: <strong className={votos.si / votos.total > 0.5 ? 'good' : 'bad'}>{fmt(votos.si, 0)}</strong> de {votos.total} (se necesita más de la mitad). El
@@ -84,7 +89,7 @@ export function Congreso() {
           const aprobada = game.leyesAprobadas.includes(l.id);
           return (
             <label key={l.id} className="option" style={aprobada ? { opacity: 0.6 } : undefined}>
-              <input type="radio" name="ley" disabled={aprobada} checked={draft.ley === l.id} onChange={() => setDraft({ ley: l.id })} />
+              <input type="radio" name="ley" disabled={aprobada} checked={draft.ley === l.id} onChange={() => setDraft({ ley: l.id, tratado: null })} />
               <span>
                 <strong>{l.nombre}</strong> {aprobada && <span className="chip">APROBADA</span>}
                 <br />

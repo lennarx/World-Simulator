@@ -3,6 +3,7 @@ import { getPais } from '../../data/countries';
 import { TITULOS_FINAL } from '../../data/texts';
 import { Bar } from '../components/Bar';
 import { IllustrativeBadge } from '../components/IllustrativeBadge';
+import { relacionPromedio } from '../../engine';
 import { fmt, INDICADORES } from '../format';
 import { borrarLocal, exportarArchivo } from '../save';
 import { useGame } from '../store';
@@ -73,6 +74,13 @@ export function Final() {
             <Bar value={f.legado[k]} label={nombre} />
           </div>
         ))}
+        <div className="row spread small">
+          <span>Relación promedio con la región</span>
+          <span>
+            {fmt(relacionPromedio(game.relacionesBase), 0)} → {fmt(relacionPromedio(game.relaciones), 0)} · {game.tratados.length} tratado/s
+            {game.crisisMaxNivel > 0 ? ` · crisis hasta nivel ${game.crisisMaxNivel}` : ''}
+          </span>
+        </div>
         <div className="row spread small">
           <span>Bonus por reelección</span>
           <span>+{f.legado.bonusReeleccion}</span>

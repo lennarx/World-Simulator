@@ -1,6 +1,7 @@
 // Legado: 5 componentes 0-100, medidos sobre todo como MEJORA vs. el inicio del mandato,
 // así un país que arranca complicado no queda condenado de entrada.
 import { CFG } from '../data/config';
+import { relacionPromedio } from './diplomacy';
 import type { GameState, Legado } from './types';
 import { clamp } from './util';
 
@@ -28,7 +29,9 @@ export function calcularLegado(s: GameState, reelecto: boolean): Legado {
     50 +
       (ini.deuda - fin.deuda) * L.sobPorDeuda +
       (fin.reservas - ini.reservas) * L.sobPorReservas +
-      (fin.capacidadMilitar - ini.capacidadMilitar) * L.sobPorMilitar,
+      (fin.capacidadMilitar - ini.capacidadMilitar) * L.sobPorMilitar +
+      // Prestigio regional (Fase 2): mejora de la relación promedio con la región.
+      (relacionPromedio(s.relaciones) - relacionPromedio(s.relacionesBase)) * CFG.diplomacia.legadoPorRelacion,
   );
   const aprobacion = pct(fin.aprobacion);
   const w = L.pesos;

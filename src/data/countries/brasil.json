@@ -11,12 +11,12 @@
   },
   "presupuesto": {
     "salud": 4, "educacion": 5, "seguridad": 1.5, "defensa": 1.3, "infraestructura": 2,
-    "asistencia": 9, "energia": 1, "deuda": 6.6
+    "asistencia": 9, "energia": 1, "deuda": 7.9
   },
   "impuestos": 29,
   "financiamientoInicial": "deuda",
   "perfil": {
-    "inercia": 0.8, "sensibilidadEmision": 1.0, "tasaBase": 7, "potencial": 2.2,
+    "inercia": 0.8, "sensibilidadEmision": 1.0, "tasaBase": 9, "potencial": 2.2,
     "rigidez": 0.8, "riesgoJuicio": 0.9, "sensibilidadCommodities": 1.0, "costoConcesion": 1.6
   },
   "congreso": [

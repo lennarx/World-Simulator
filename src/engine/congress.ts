@@ -1,23 +1,44 @@
 // Congreso: concesiones, probabilidad de voto por bloque y votación.
 import { CFG } from '../data/config';
-import { getLey, type Ley } from './data';
+import { getLey } from './data';
 import type { Rng } from './rng';
-import type { Bloque, Decisiones, EntradaParte, GameState, Indicadores, Mods } from './types';
+import type { Bloque, Decisiones, EntradaParte, GameState, Indicadores, Mods, TipoBloque } from './types';
 import { clamp, sigmoid } from './util';
 
 const C = CFG.congreso;
 
-export function probVotoBloque(s: GameState, b: Bloque, ley: Ley, concesion: number): number {
+/** Cualquier cosa que se vota: una ley o un tratado. Solo importa cuánto le gusta a cada tipo de bloque. */
+export interface Votable {
+  apoyo: Record<TipoBloque, number>;
+}
+
+export function probVotoBloque(s: GameState, b: Bloque, v: Votable, concesion: number): number {
   const score =
-    b.afinidad * C.pesoAfinidad + ley.apoyo[b.tipo] + concesion * C.porConcesion + (s.ind.aprobacion - 50) * C.pesoAprobacion;
+    b.afinidad * C.pesoAfinidad + v.apoyo[b.tipo] + concesion * C.porConcesion + (s.ind.aprobacion - 50) * C.pesoAprobacion;
   return sigmoid(score / C.escala);
 }
 
 /** Bancas a favor esperadas (para mostrar en la UI antes de votar). */
-export function votosEsperados(s: GameState, ley: Ley, concesiones: Record<string, number>): { si: number; total: number } {
+export function votosEsperados(s: GameState, v: Votable, concesiones: Record<string, number>): { si: number; total: number } {
   const total = s.congreso.reduce((a, b) => a + b.bancas, 0);
-  const si = s.congreso.reduce((a, b) => a + b.bancas * probVotoBloque(s, b, ley, concesiones[b.id] ?? 0), 0);
+  const si = s.congreso.reduce((a, b) => a + b.bancas * probVotoBloque(s, b, v, concesiones[b.id] ?? 0), 0);
   return { si, total };
+}
+
+/** Votación con azar. Cada bloque vota en bloque con prob. = disciplina; si no, se parte. */
+export function votar(s: GameState, v: Votable, concesiones: Record<string, number>, rng: Rng): { aprobada: boolean; si: number; total: number } {
+  let si = 0;
+  let total = 0;
+  for (const b of s.congreso) {
+    const p = probVotoBloque(s, b, v, concesiones[b.id] ?? 0);
+    total += b.bancas;
+    if (rng.chance(b.disciplina)) {
+      if (rng.chance(p)) si += b.bancas;
+    } else {
+      si += Math.round(b.bancas * clamp(p + rng.noise(C.ruidoVoto), 0, 1));
+    }
+  }
+  return { aprobada: si > total / 2, si, total };
 }
 
 export function aplicarConcesiones(s: GameState, concesiones: Record<string, number>, report: EntradaParte[]): void {
@@ -36,20 +57,7 @@ export function resolverLey(s: GameState, d: Decisiones, rng: Rng, report: Entra
   const ley = getLey(d.ley);
   if (!ley || s.leyesAprobadas.includes(ley.id)) return null;
 
-  let si = 0;
-  let total = 0;
-  for (const b of s.congreso) {
-    const p = probVotoBloque(s, b, ley, d.concesiones[b.id] ?? 0);
-    total += b.bancas;
-    if (rng.chance(b.disciplina)) {
-      // Vota en bloque.
-      if (rng.chance(p)) si += b.bancas;
-    } else {
-      // Bloque partido: cada uno hace la suya (con algo de ruido).
-      si += Math.round(b.bancas * clamp(p + rng.noise(C.ruidoVoto), 0, 1));
-    }
-  }
-  const aprobada = si > total / 2;
+  const { aprobada, si, total } = votar(s, ley, d.concesiones, rng);
   if (aprobada) {
     s.leyesAprobadas.push(ley.id);
     for (const [k, v] of Object.entries(ley.efectos)) {

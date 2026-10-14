@@ -1,6 +1,6 @@
 // Aviso de versión nueva. Con registerType 'autoUpdate' el SW nuevo se activa solo;
 // interceptamos onNeedReload para no recargar de prepo y dejar que el jugador elija cuándo.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 export function UpdateToast() {
@@ -13,6 +13,13 @@ export function UpdateToast() {
       /* sin SW (ej. http sin TLS): la app igual funciona online */
     },
   });
+
+  // El aviso de offline es informativo: se cierra solo.
+  useEffect(() => {
+    if (!offlineReady) return;
+    const t = setTimeout(() => setOfflineReady(false), 5000);
+    return () => clearTimeout(t);
+  }, [offlineReady, setOfflineReady]);
 
   if (hayNueva) {
     return (
