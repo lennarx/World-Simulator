@@ -6,6 +6,7 @@ const COLORES: Partial<Record<EntradaParte['tag'], string>> = {
   ESCÁNDALO: 'var(--color-bad)',
   FINAL: 'var(--color-bad)',
   PRESIÓN: 'var(--color-warn)',
+  DIPLOMACIA: 'var(--color-good)',
 };
 
 export function Tag({ tag }: { tag: EntradaParte['tag'] }) {

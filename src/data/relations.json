@@ -1,0 +1,23 @@
+{
+  "_nota": "Relaciones bilaterales iniciales ILUSTRATIVAS (-100..100). Los pares que no figuran usan CFG.diplomacia.relacionDefault.",
+  "pares": [
+    { "a": "argentina", "b": "brasil", "valor": 35 },
+    { "a": "argentina", "b": "chile", "valor": 12 },
+    { "a": "argentina", "b": "uruguay", "valor": 30 },
+    { "a": "argentina", "b": "paraguay", "valor": 25 },
+    { "a": "argentina", "b": "bolivia", "valor": 20 },
+    { "a": "peru", "b": "chile", "valor": 5 },
+    { "a": "peru", "b": "ecuador", "valor": 12 },
+    { "a": "peru", "b": "bolivia", "valor": 15 },
+    { "a": "peru", "b": "colombia", "valor": 25 },
+    { "a": "peru", "b": "brasil", "valor": 30 },
+    { "a": "brasil", "b": "venezuela", "valor": 8 },
+    { "a": "brasil", "b": "paraguay", "valor": 30 },
+    { "a": "brasil", "b": "uruguay", "valor": 30 },
+    { "a": "brasil", "b": "bolivia", "valor": 22 },
+    { "a": "brasil", "b": "colombia", "valor": 25 },
+    { "a": "bolivia", "b": "chile", "valor": -5 },
+    { "a": "venezuela", "b": "guyana", "valor": -20 },
+    { "a": "venezuela", "b": "colombia", "valor": 0 }
+  ]
+}

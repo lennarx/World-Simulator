@@ -1,8 +1,9 @@
 import { seedFrom } from './rng';
 import type { DatosPais, GameState, Mods } from './types';
+import { relacionesIniciales } from './diplomacy';
 import { primaObjetivo } from './economy';
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 export const MODS_VACIOS: Mods = { recaudacion: 0, potencial: 0, prima: 0, riesgoEscandalo: 0, inercia: 0, rigidez: 0 };
 
@@ -36,6 +37,11 @@ export function createGame(pais: DatosPais, semilla: number | string): GameState
     leyesAprobadas: [],
     historial: [],
     final: null,
+    relaciones: relacionesIniciales(pais.id),
+    relacionesBase: relacionesIniciales(pais.id),
+    tratados: [],
+    crisis: null,
+    crisisMaxNivel: 0,
   };
   base.primaRiesgo = primaObjetivo(base);
   base.historial.push({ turno: 0, ind: { ...ind }, deficit: 0 });

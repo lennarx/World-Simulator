@@ -13,6 +13,7 @@ describe('eventos', () => {
       expect(e.peso).toBeGreaterThan(0);
       for (const c of e.cond) expect(() => resolverVar(s, c.var)).not.toThrow();
       for (const k of Object.keys(e.efectos)) expect(k in s.ind).toBe(true);
+      if (e.diplomacia) expect(['vecinoPeor', 'vecinoAleatorio', 'todos']).toContain(e.diplomacia.objetivo);
     }
     for (const l of LEYES) for (const k of Object.keys(l.mods)) expect(k in s.mods).toBe(true);
   });

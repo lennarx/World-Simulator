@@ -1,7 +1,8 @@
 # Simulador de Gobierno Sudamericano
 
 Simulador de gobierno por turnos (1 turno = 1 trimestre, mandato = 16 turnos). Sos presidente/a de un país
-de Sudamérica: presupuesto, Congreso, shocks y, en fases futuras, diplomacia y defensa.
+de Sudamérica: presupuesto, Congreso, shocks, diplomacia (relaciones, tratados, crisis de frontera) y, en fases
+futuras, defensa.
 **Todos los valores son ilustrativos.** PWA instalable que funciona offline.
 
 > Para agentes/colaboradores: el detalle completo (arquitectura, estado, roadmap) está en [`CLAUDE.md`](CLAUDE.md).
@@ -12,7 +13,7 @@ de Sudamérica: presupuesto, Congreso, shocks y, en fases futuras, diplomacia y 
 npm install
 npm run dev        # desarrollo en http://localhost:5173
 npm test           # tests del motor (Vitest)
-npm run sim        # 400 partidas por país × estrategia, imprime tabla de balance
+npm run sim        # 400 partidas por país × estrategia (6 estrategias), tabla con victorias, crisis y tratados
 npm run sim -- 1000          # otra cantidad de partidas
 npm run sim:debug            # promedios de indicadores finales por estrategia (para calibrar)
 npm run build && npm run preview   # build de producción con service worker (probar PWA/offline)
@@ -35,9 +36,11 @@ Perillas que más mueven el juego:
 | `politica.aprobPorPresion`, `presion.porTurno` | desgaste del poder hacia el final |
 | `legado.umbralVictoria`, `legado.umbralReeleccion` | qué tan difícil es ganar |
 | `finales.juicio*` + `congreso` del país | riesgo de juicio político (clave en Perú) |
-| `perfil.rigidez` / `perfil.inercia` del país | lo que hace difícil a Brasil / Argentina |
+| `perfil.rigidez` / `perfil.inercia` / `perfil.tasaBase` del país | lo que hace difícil a Brasil / Argentina |
+| `diplomacia.tratados.*` (topes, `relacionMin`) | cuánto rinde firmar tratados |
+| `diplomacia.crisis.umbral`, `probPorPunto` | frecuencia de crisis de frontera |
 
-Los datos (países, leyes, eventos) están en `src/data/*.json` para reemplazarlos por fuentes públicas sin tocar el motor.
+Los datos (países, leyes, eventos, vecinos y relaciones iniciales) están en `src/data/*.json` para reemplazarlos por fuentes públicas sin tocar el motor.
 
 ## Deploy (hosting estático con HTTPS)
 

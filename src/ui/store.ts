@@ -4,7 +4,7 @@ import { getPais } from '../data/countries';
 import { advanceTurn, createGame, decisionesActuales, interesesExigibles, type Decisiones, type GameState } from '../engine';
 import { borrarLocal, cargarLocal, crearSave, guardarLocal, type ParteTurno, type SaveFile } from './save';
 
-export type Pantalla = 'inicio' | 'panel' | 'presupuesto' | 'congreso' | 'parte' | 'final';
+export type Pantalla = 'inicio' | 'panel' | 'presupuesto' | 'congreso' | 'diplomacia' | 'parte' | 'final';
 
 interface Store {
   game: GameState | null;

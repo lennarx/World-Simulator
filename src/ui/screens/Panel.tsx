@@ -1,6 +1,6 @@
 import { CFG } from '../../data/config';
 import { getPais } from '../../data/countries';
-import { getLey, previewFiscal, probGolpe, probJuicio, type IndicadorId } from '../../engine';
+import { getLey, nombrePais, previewFiscal, probGolpe, probJuicio, type IndicadorId } from '../../engine';
 import { Bar } from '../components/Bar';
 import { Indicator } from '../components/Indicator';
 import { fmt } from '../format';
@@ -29,6 +29,14 @@ export function Panel() {
           <span>{fmt(game.presion, 0)}/100</span>
         </div>
         <Bar value={game.presion} label="Presión acumulada" color="var(--color-warn)" />
+        {game.crisis && (
+          <p className="bad small">
+            Crisis de frontera con {nombrePais(game.crisis.con)} (nivel {game.crisis.nivel}/3).{' '}
+            <button type="button" className="ghost" onClick={() => irA('diplomacia')}>
+              Responder
+            </button>
+          </p>
+        )}
         {game.escandaloActivo > 0 && <p className="bad small">Escándalo activo: la oposición está al acecho ({game.escandaloActivo} turno/s).</p>}
         {riesgoJuicio > 0 && <p className="bad small">Riesgo de juicio político este trimestre: {fmt(riesgoJuicio * 100, 0)}%.</p>}
         {riesgoGolpe > 0 && <p className="bad small">Riesgo de quiebre institucional: {fmt(riesgoGolpe * 100, 0)}%.</p>}
@@ -61,8 +69,12 @@ export function Panel() {
         </div>
         {f.enAtraso && <p className="bad small">Pagás menos que los intereses exigibles ({fmt(f.intereses)}% PBI): vas a entrar en atraso.</p>}
         <div className="row spread small">
-          <span>Ley en el Congreso</span>
-          <span>{ley ? ley.nombre : 'Ninguna'}</span>
+          <span>En el Congreso</span>
+          <span>{draft.tratado ? `Tratado de ${draft.tratado.tipo} con ${nombrePais(draft.tratado.con)}` : ley ? ley.nombre : 'Nada'}</span>
+        </div>
+        <div className="row spread small">
+          <span>Acciones diplomáticas</span>
+          <span>{draft.diplomacia.length ? draft.diplomacia.map((a) => `${a.tipo} (${nombrePais(a.con)})`).join(', ') : 'Ninguna'}</span>
         </div>
         <div className="row">
           <button type="button" onClick={() => irA('presupuesto')}>
@@ -70,6 +82,9 @@ export function Panel() {
           </button>
           <button type="button" onClick={() => irA('congreso')}>
             Congreso
+          </button>
+          <button type="button" onClick={() => irA('diplomacia')}>
+            Diplomacia
           </button>
           <button type="button" className="primary" onClick={cerrar}>
             Cerrar trimestre

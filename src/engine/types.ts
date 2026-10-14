@@ -91,7 +91,7 @@ export interface DatosPais {
 }
 
 export interface EntradaParte {
-  tag: 'ECONOMÍA' | 'SOCIEDAD' | 'CONGRESO' | 'CLIMA' | 'ESCÁNDALO' | 'GOBIERNO' | 'EVENTO' | 'PRESIÓN' | 'FINAL';
+  tag: 'ECONOMÍA' | 'SOCIEDAD' | 'CONGRESO' | 'CLIMA' | 'ESCÁNDALO' | 'GOBIERNO' | 'EVENTO' | 'PRESIÓN' | 'DIPLOMACIA' | 'FINAL';
   texto: string;
 }
 
@@ -122,6 +122,28 @@ export interface Final {
   mensaje: string;
 }
 
+// ---------------------------------------------------------------- Diplomacia (Fase 2)
+export type TipoAccion = 'visita' | 'cooperacion' | 'protesta' | 'gesto';
+export type TipoTratado = 'comercio' | 'defensa' | 'integracion';
+export type RespuestaCrisis = 'negociar' | 'escalar' | 'ignorar';
+
+export interface AccionDiplomatica {
+  tipo: TipoAccion;
+  con: string; // id de país
+}
+
+export interface Tratado {
+  tipo: TipoTratado;
+  con: string;
+  desde: number; // turno de firma
+}
+
+export interface CrisisFrontera {
+  con: string;
+  nivel: number; // 1..3; 3 = al borde del conflicto (gancho Fase 3)
+  turnos: number;
+}
+
 export interface Decisiones {
   presupuesto: Presupuesto;
   impuestos: number;
@@ -130,6 +152,12 @@ export interface Decisiones {
   ley: string | null;
   /** Concesiones a bloques: id de bloque -> % PBI de gasto extra (one-shot). */
   concesiones: Record<string, number>;
+  /** Acciones diplomáticas del turno (máx. CFG.diplomacia.accionesPorTurno). */
+  diplomacia: AccionDiplomatica[];
+  /** Tratado a firmar este turno. Ocupa la votación del Congreso: si hay tratado, `ley` se ignora. */
+  tratado: { tipo: TipoTratado; con: string } | null;
+  /** Respuesta a la crisis de frontera activa (null = ignorar). */
+  respuestaCrisis: RespuestaCrisis | null;
 }
 
 export interface Snapshot {
@@ -166,6 +194,12 @@ export interface GameState {
   leyesAprobadas: string[];
   historial: Snapshot[];
   final: Final | null;
+  // Diplomacia (Fase 2)
+  relaciones: Record<string, number>;
+  relacionesBase: Record<string, number>;
+  tratados: Tratado[];
+  crisis: CrisisFrontera | null;
+  crisisMaxNivel: number; // máximo nivel alcanzado en la partida (para el sim y el final)
   guerra?: EstadoGuerra;
 }
 

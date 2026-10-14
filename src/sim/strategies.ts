@@ -3,7 +3,8 @@ import { CFG } from '../data/config';
 import { getLey } from '../engine/data';
 import { previewFiscal, interesesExigibles } from '../engine/budget';
 import { votosEsperados } from '../engine/congress';
-import type { Decisiones, GameState, Presupuesto } from '../engine/types';
+import { pesoComercial, peorVecino, puedeFirmar, tieneTratado, votosTratado } from '../engine/diplomacy';
+import type { AccionDiplomatica, Decisiones, GameState, Presupuesto, TipoTratado } from '../engine/types';
 import { decisionesActuales } from '../engine/turn';
 
 export type Estrategia = (s: GameState) => Decisiones;
@@ -31,6 +32,32 @@ function elegirLey(s: GameState, preferidas: string[], umbral: number, maxConces
   return { ley: null, concesiones: {} };
 }
 
+// ---------------------------------------------------------------- Diplomacia de las estrategias
+
+/** Busca un tratado firmable con chances en el Congreso (socios ordenados por peso comercial). */
+function elegirTratado(s: GameState, tipos: TipoTratado[], umbral: number): Decisiones['tratado'] {
+  const socios = Object.keys(s.relaciones).sort((a, b) => pesoComercial(b) - pesoComercial(a));
+  for (const tipo of tipos)
+    for (const con of socios) {
+      if (!puedeFirmar(s, tipo, con).ok) continue;
+      const v = votosTratado(s, tipo, {});
+      if (v.si / v.total >= umbral) return { tipo, con };
+    }
+  return null;
+}
+
+/** Visitas a quien más lo necesita: el peor vecino y el socio comercial grande todavía sin tratado. */
+function visitas(s: GameState, n: number): AccionDiplomatica[] {
+  const out: AccionDiplomatica[] = [];
+  const peor = peorVecino(s);
+  if (peor && s.relaciones[peor]! < 40) out.push({ tipo: 'visita', con: peor });
+  const socio = Object.keys(s.relaciones)
+    .filter((id) => !tieneTratado(s, 'comercio', id) && !out.some((a) => a.con === id))
+    .sort((a, b) => pesoComercial(b) - pesoComercial(a))[0];
+  if (socio) out.push({ tipo: 'visita', con: socio });
+  return out.slice(0, n);
+}
+
 /** No hacer nada: presupuesto base para siempre, sin leyes. */
 export const nada: Estrategia = (s) => decisionesActuales(s);
 
@@ -39,7 +66,7 @@ export const equilibrada: Estrategia = (s) => {
   const base = s.presupuestoBase;
   const p = escalar(base, { infraestructura: 1.25, educacion: 1.1, salud: 1.05, seguridad: 1.1, energia: 1.05 });
   p.deuda = Math.min(CFG.fiscal.areaMax, interesesExigibles(s) + 0.2);
-  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase, financiamiento: 'deuda', ley: null, concesiones: {} };
+  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase, financiamiento: 'deuda', ley: null, concesiones: {}, diplomacia: [], tratado: null, respuestaCrisis: null };
   // Si el déficit es alto, recorta asistencia/energía un poco y sube impuestos de a poco.
   let f = previewFiscal(s, d);
   if (f.deficit > 2.5) {
@@ -51,6 +78,10 @@ export const equilibrada: Estrategia = (s) => {
   d.financiamiento = s.ind.deuda > 100 && s.ind.inflacion < 15 ? 'mixto' : 'deuda';
   const leyes = ['regla_fiscal', 'ley_inversiones', 'ley_integridad', 'autonomia_bc', 'reforma_tributaria'];
   Object.assign(d, elegirLey(s, leyes, 0.58, 1));
+  // Diplomacia: visita al peor vecino / socio comercial; tratado de comercio cuando no hay ley; negocia crisis.
+  d.diplomacia = visitas(s, 1);
+  if (!d.ley) d.tratado = elegirTratado(s, ['comercio'], 0.58);
+  d.respuestaCrisis = s.crisis ? 'negociar' : null;
   return d;
 };
 
@@ -63,8 +94,15 @@ export const populista: Estrategia = (s) => {
     financiamiento: 'emision',
     ley: null,
     concesiones: {},
+    diplomacia: [],
+    tratado: null,
+    respuestaCrisis: null,
   };
   Object.assign(d, elegirLey(s, ['ampliacion_transferencias', 'emergencia_economica'], 0.5, 2));
+  // Diplomacia de tribuna: si la aprobación flaquea, le pega al vecino; ante una crisis, escala.
+  const peor = peorVecino(s);
+  if (peor && s.ind.aprobacion < 45) d.diplomacia = [{ tipo: 'gesto', con: peor }];
+  d.respuestaCrisis = s.crisis ? 'escalar' : null;
   return d;
 };
 
@@ -72,9 +110,32 @@ export const populista: Estrategia = (s) => {
 export const austeridad: Estrategia = (s) => {
   const p = escalar(s.presupuestoBase, { asistencia: 0.88, energia: 0.75, salud: 0.95, educacion: 0.95, infraestructura: 0.92, defensa: 0.9 });
   p.deuda = Math.min(CFG.fiscal.areaMax, interesesExigibles(s) + 0.5);
-  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase + 1, financiamiento: 'deuda', ley: null, concesiones: {} };
+  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase + 1, financiamiento: 'deuda', ley: null, concesiones: {}, diplomacia: [], tratado: null, respuestaCrisis: null };
   Object.assign(d, elegirLey(s, ['reforma_previsional', 'reforma_laboral', 'regla_fiscal', 'autonomia_bc', 'reforma_tributaria'], 0.52, 2));
+  d.diplomacia = visitas(s, 1);
+  if (!d.ley) d.tratado = elegirTratado(s, ['comercio', 'integracion'], 0.52);
+  d.respuestaCrisis = s.crisis ? 'negociar' : null;
   return d;
 };
 
-export const ESTRATEGIAS: Record<string, Estrategia> = { equilibrada, populista, austeridad, nada };
+/** Aislacionista: la misma economía que la equilibrada, pero sin diplomacia (ignora crisis, cero tratados). */
+export const aislacionista: Estrategia = (s) => {
+  const d = equilibrada(s);
+  return { ...d, diplomacia: [], tratado: null, respuestaCrisis: null };
+};
+
+/** Integracionista: economía equilibrada sin emisión + prioriza tratados y visitas (2 por turno). */
+export const integracionista: Estrategia = (s) => {
+  const d = equilibrada(s);
+  d.financiamiento = 'deuda';
+  d.diplomacia = visitas(s, 2);
+  const t = elegirTratado(s, ['comercio', 'integracion', 'defensa'], 0.55);
+  if (t) {
+    d.tratado = t;
+    d.ley = null;
+  }
+  d.respuestaCrisis = s.crisis ? 'negociar' : null;
+  return d;
+};
+
+export const ESTRATEGIAS: Record<string, Estrategia> = { equilibrada, populista, austeridad, nada, aislacionista, integracionista };

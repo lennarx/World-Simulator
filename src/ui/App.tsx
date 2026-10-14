@@ -8,6 +8,7 @@ import { IosInstallHint } from './pwa/IosInstallHint';
 import { UpdateToast } from './pwa/UpdateToast';
 import { exportarArchivo, escribirPref, leerPref } from './save';
 import { Congreso } from './screens/Congreso';
+import { Diplomacia } from './screens/Diplomacia';
 import { Final } from './screens/Final';
 import { Inicio } from './screens/Inicio';
 import { Panel } from './screens/Panel';
@@ -33,6 +34,7 @@ const TABS: [Pantalla, string][] = [
   ['panel', 'Panel'],
   ['presupuesto', 'Presupuesto'],
   ['congreso', 'Congreso'],
+  ['diplomacia', 'Diplomacia'],
   ['parte', 'Partes'],
 ];
 
@@ -99,6 +101,7 @@ export function App() {
         {game && pantalla === 'panel' && <Panel />}
         {game && pantalla === 'presupuesto' && <Presupuesto />}
         {game && pantalla === 'congreso' && <Congreso />}
+        {game && pantalla === 'diplomacia' && <Diplomacia />}
         {game && pantalla === 'parte' && <Parte />}
         {game && pantalla === 'final' && game.final && <Final />}
       </div>

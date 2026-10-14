@@ -1,0 +1,17 @@
+{
+  "_nota": "Vecinos = fronteras terrestres. pesoComercial (0-1) es ILUSTRATIVO: escala los beneficios de un tratado de comercio.",
+  "paises": {
+    "argentina": { "vecinos": ["bolivia", "brasil", "chile", "paraguay", "uruguay"], "pesoComercial": 0.6 },
+    "bolivia": { "vecinos": ["argentina", "brasil", "chile", "paraguay", "peru"], "pesoComercial": 0.2 },
+    "brasil": { "vecinos": ["argentina", "bolivia", "colombia", "guyana", "paraguay", "peru", "surinam", "uruguay", "venezuela"], "pesoComercial": 1.0 },
+    "chile": { "vecinos": ["argentina", "bolivia", "peru"], "pesoComercial": 0.5 },
+    "colombia": { "vecinos": ["brasil", "ecuador", "peru", "venezuela"], "pesoComercial": 0.5 },
+    "ecuador": { "vecinos": ["colombia", "peru"], "pesoComercial": 0.3 },
+    "guyana": { "vecinos": ["brasil", "surinam", "venezuela"], "pesoComercial": 0.15 },
+    "paraguay": { "vecinos": ["argentina", "bolivia", "brasil"], "pesoComercial": 0.2 },
+    "peru": { "vecinos": ["bolivia", "brasil", "chile", "colombia", "ecuador"], "pesoComercial": 0.45 },
+    "surinam": { "vecinos": ["brasil", "guyana"], "pesoComercial": 0.1 },
+    "uruguay": { "vecinos": ["argentina", "brasil"], "pesoComercial": 0.2 },
+    "venezuela": { "vecinos": ["brasil", "colombia", "guyana"], "pesoComercial": 0.3 }
+  }
+}
