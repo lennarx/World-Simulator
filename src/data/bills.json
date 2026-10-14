@@ -1,0 +1,74 @@
+[
+  {
+    "id": "reforma_tributaria",
+    "nombre": "Reforma tributaria",
+    "descripcion": "Sube la recaudación de forma permanente. Nadie aplaude, pero la caja lo agradece.",
+    "apoyo": { "oficialismo": 30, "aliado": 10, "centro": -5, "opositor": -30, "regional": 0 },
+    "efectos": { "aprobacion": -3, "crecimiento": -0.2 },
+    "mods": { "recaudacion": 1.5 }
+  },
+  {
+    "id": "reforma_previsional",
+    "nombre": "Reforma previsional",
+    "descripcion": "Alivia las cuentas a largo plazo. Corto plazo: la calle se enoja.",
+    "apoyo": { "oficialismo": 15, "aliado": 0, "centro": 5, "opositor": 5, "regional": -10 },
+    "efectos": { "aprobacion": -6, "estabilidad": -5 },
+    "mods": { "recaudacion": 1.2 }
+  },
+  {
+    "id": "ley_inversiones",
+    "nombre": "Régimen de promoción de inversiones",
+    "descripcion": "Más crecimiento potencial a cambio de un poco de recaudación.",
+    "apoyo": { "oficialismo": 20, "aliado": 15, "centro": 15, "opositor": 5, "regional": 10 },
+    "efectos": {},
+    "mods": { "potencial": 0.4, "recaudacion": -0.3 }
+  },
+  {
+    "id": "regla_fiscal",
+    "nombre": "Regla fiscal plurianual",
+    "descripcion": "Los mercados se calman y baja la prima de riesgo.",
+    "apoyo": { "oficialismo": 10, "aliado": 5, "centro": 15, "opositor": 10, "regional": -15 },
+    "efectos": { "aprobacion": -1 },
+    "mods": { "prima": -0.8 }
+  },
+  {
+    "id": "ley_integridad",
+    "nombre": "Ley de integridad pública",
+    "descripcion": "Menos escándalos (en teoría). Algo de aprobación y gobernabilidad.",
+    "apoyo": { "oficialismo": 10, "aliado": 10, "centro": 15, "opositor": 5, "regional": -5 },
+    "efectos": { "gobernabilidad": 3, "aprobacion": 2 },
+    "mods": { "riesgoEscandalo": -0.4 }
+  },
+  {
+    "id": "reforma_laboral",
+    "nombre": "Reforma laboral",
+    "descripcion": "Baja algo el desempleo y sube el potencial. Los gremios toman nota.",
+    "apoyo": { "oficialismo": 10, "aliado": 5, "centro": 15, "opositor": 15, "regional": 5 },
+    "efectos": { "estabilidad": -6, "aprobacion": -3, "desempleo": -0.5 },
+    "mods": { "potencial": 0.3 }
+  },
+  {
+    "id": "autonomia_bc",
+    "nombre": "Autonomía del Banco Central",
+    "descripcion": "Reduce la inercia inflacionaria y la prima. Perdés la maquinita sin culpa.",
+    "apoyo": { "oficialismo": 0, "aliado": 5, "centro": 20, "opositor": 20, "regional": -5 },
+    "efectos": { "aprobacion": -1 },
+    "mods": { "inercia": -0.08, "prima": -0.4 }
+  },
+  {
+    "id": "ampliacion_transferencias",
+    "nombre": "Ampliación de transferencias",
+    "descripcion": "Más ingresos para los hogares vulnerables. Cuesta recaudación neta.",
+    "apoyo": { "oficialismo": 35, "aliado": 15, "centro": -5, "opositor": -30, "regional": 10 },
+    "efectos": { "aprobacion": 5, "estabilidad": 5 },
+    "mods": { "recaudacion": -0.8 }
+  },
+  {
+    "id": "emergencia_economica",
+    "nombre": "Emergencia económica",
+    "descripcion": "Facultades delegadas: más gobernabilidad y recortes menos dolorosos.",
+    "apoyo": { "oficialismo": 30, "aliado": 5, "centro": -10, "opositor": -35, "regional": 5 },
+    "efectos": { "gobernabilidad": 8 },
+    "mods": { "rigidez": -0.2 }
+  }
+]
