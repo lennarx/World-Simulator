@@ -1,0 +1,32 @@
+{
+  "id": "peru",
+  "nombre": "Perú",
+  "gentilicio": "peruano",
+  "playable": true,
+  "resumen": "Macro prolija, Congreso con más bloques que sillas libres.",
+  "problema": "Congreso fragmentado y hostil: el riesgo es el juicio político, no la economía.",
+  "indicadores": {
+    "crecimiento": 2.5, "inflacion": 4, "deuda": 34, "reservas": 14, "desempleo": 7,
+    "aprobacion": 52, "gobernabilidad": 42, "estabilidad": 50, "capacidadMilitar": 45
+  },
+  "presupuesto": {
+    "salud": 3.5, "educacion": 4, "seguridad": 1.8, "defensa": 1, "infraestructura": 3.5,
+    "asistencia": 2.5, "energia": 0.8, "deuda": 1.4
+  },
+  "impuestos": 17.5,
+  "financiamientoInicial": "deuda",
+  "perfil": {
+    "inercia": 0.7, "sensibilidadEmision": 0.8, "tasaBase": 3.5, "potencial": 3,
+    "rigidez": 0.2, "riesgoJuicio": 1.8, "sensibilidadCommodities": 1.3, "costoConcesion": 0.8
+  },
+  "congreso": [
+    { "id": "of", "nombre": "Bancada oficialista", "tipo": "oficialismo", "bancas": 18, "afinidad": 60, "disciplina": 0.7 },
+    { "id": "al", "nombre": "Aliados de ocasión", "tipo": "aliado", "bancas": 12, "afinidad": 25, "disciplina": 0.5 },
+    { "id": "ca", "nombre": "Centro A", "tipo": "centro", "bancas": 22, "afinidad": -10, "disciplina": 0.4 },
+    { "id": "cb", "nombre": "Centro B", "tipo": "centro", "bancas": 16, "afinidad": -18, "disciplina": 0.4 },
+    { "id": "o1", "nombre": "Oposición dura", "tipo": "opositor", "bancas": 30, "afinidad": -45, "disciplina": 0.8 },
+    { "id": "o2", "nombre": "Oposición blanda", "tipo": "opositor", "bancas": 20, "afinidad": -30, "disciplina": 0.6 },
+    { "id": "re", "nombre": "Bancadas regionales", "tipo": "regional", "bancas": 12, "afinidad": 0, "disciplina": 0.3 }
+  ],
+  "eventMult": { "escandalo": 1.6, "protesta_minera": 1.5, "precio_metales_alza": 1.2, "precio_metales_baja": 1.2 }
+}

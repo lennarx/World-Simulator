@@ -1,0 +1,30 @@
+{
+  "id": "argentina",
+  "nombre": "Argentina",
+  "gentilicio": "argentino",
+  "playable": true,
+  "resumen": "Inflación con memoria de elefante y reservas que entran en un sobre.",
+  "problema": "Inflación con inercia fuerte y reservas flacas: emitir pega el doble.",
+  "indicadores": {
+    "crecimiento": 1.5, "inflacion": 60, "deuda": 80, "reservas": 2.5, "desempleo": 8,
+    "aprobacion": 56, "gobernabilidad": 55, "estabilidad": 50, "capacidadMilitar": 40
+  },
+  "presupuesto": {
+    "salud": 6, "educacion": 5, "seguridad": 2, "defensa": 0.8, "infraestructura": 2.5,
+    "asistencia": 6.5, "energia": 2, "deuda": 4.2
+  },
+  "impuestos": 27,
+  "financiamientoInicial": "mixto",
+  "perfil": {
+    "inercia": 0.9, "sensibilidadEmision": 1.4, "tasaBase": 2.5, "potencial": 2.5,
+    "rigidez": 0.3, "riesgoJuicio": 0.6, "sensibilidadCommodities": 1.2, "costoConcesion": 1.0
+  },
+  "congreso": [
+    { "id": "of", "nombre": "Oficialismo", "tipo": "oficialismo", "bancas": 100, "afinidad": 70, "disciplina": 0.9 },
+    { "id": "al", "nombre": "Aliados circunstanciales", "tipo": "aliado", "bancas": 15, "afinidad": 35, "disciplina": 0.7 },
+    { "id": "ce", "nombre": "Centro dialoguista", "tipo": "centro", "bancas": 40, "afinidad": 0, "disciplina": 0.5 },
+    { "id": "op", "nombre": "Oposición principal", "tipo": "opositor", "bancas": 90, "afinidad": -40, "disciplina": 0.85 },
+    { "id": "pr", "nombre": "Bloques provinciales", "tipo": "regional", "bancas": 12, "afinidad": 15, "disciplina": 0.4 }
+  ],
+  "eventMult": { "paro_general": 1.5, "corrida_cambiaria": 1.6, "cosecha_record": 1.3, "sequia": 1.3 }
+}

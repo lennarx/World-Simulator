@@ -1,0 +1,115 @@
+[
+  {
+    "id": "cosecha_record", "tag": "ECONOMÍA", "peso": 1, "negativo": false, "commodity": true, "cond": [],
+    "efectos": { "reservas": 1.5, "crecimiento": 0.6 },
+    "temporal": { "efectos": { "crecimiento": 0.3 }, "duracion": 2 },
+    "texto": "Cosecha récord y precios internacionales amables. El campo sonríe (no lo va a admitir)."
+  },
+  {
+    "id": "precio_commodities_baja", "tag": "ECONOMÍA", "peso": 1, "negativo": true, "commodity": true, "cond": [],
+    "efectos": { "reservas": -1.2, "crecimiento": -0.6 },
+    "temporal": { "efectos": { "crecimiento": -0.3 }, "duracion": 3 },
+    "texto": "Se desploman los precios de lo que exportamos. El mundo decidió hacer dieta justo ahora."
+  },
+  {
+    "id": "precio_metales_alza", "tag": "ECONOMÍA", "peso": 0.8, "negativo": false, "commodity": true, "cond": [],
+    "efectos": { "reservas": 1.2, "crecimiento": 0.5 },
+    "texto": "Los metales cotizan en alza. Las mineras celebran y el Tesoro cuenta."
+  },
+  {
+    "id": "precio_metales_baja", "tag": "ECONOMÍA", "peso": 0.8, "negativo": true, "commodity": true, "cond": [],
+    "efectos": { "reservas": -1, "crecimiento": -0.5 },
+    "texto": "Caen los metales. Los proyectos mineros pasan a 'evaluación' (o sea, cajón)."
+  },
+  {
+    "id": "sequia", "tag": "CLIMA", "peso": 0.9, "negativo": true, "commodity": true, "cond": [],
+    "efectos": { "crecimiento": -0.8, "reservas": -0.6, "estabilidad": -3, "aprobacion": -2 },
+    "temporal": { "efectos": { "crecimiento": -0.3 }, "duracion": 2 },
+    "texto": "Sequía severa en las zonas productivas. Se pierde parte de la cosecha y la paciencia."
+  },
+  {
+    "id": "inundaciones", "tag": "CLIMA", "peso": 0.7, "negativo": true, "cond": [],
+    "efectos": { "estabilidad": -4, "aprobacion": -3, "crecimiento": -0.3 },
+    "texto": "Inundaciones afectan a miles de familias. La asistencia del Estado se pone a prueba."
+  },
+  {
+    "id": "paro_general", "tag": "SOCIEDAD", "peso": 1.2, "negativo": true,
+    "cond": [{ "var": "estabilidad", "op": "<", "value": 55 }],
+    "efectos": { "crecimiento": -0.6, "estabilidad": -6, "aprobacion": -3, "gobernabilidad": -3 },
+    "texto": "Paro general. El país se detiene un día y los gremios demuestran que todavía tienen convocatoria."
+  },
+  {
+    "id": "huelga_docente", "tag": "SOCIEDAD", "peso": 1, "negativo": true,
+    "cond": [{ "var": "inflacion", "op": ">", "value": 15 }],
+    "efectos": { "estabilidad": -3, "aprobacion": -2 },
+    "texto": "Huelga docente por salarios: con esta inflación, el recibo de sueldo es ciencia ficción."
+  },
+  {
+    "id": "protesta_minera", "tag": "SOCIEDAD", "peso": 0.8, "negativo": true,
+    "cond": [{ "var": "estabilidad", "op": "<", "value": 60 }],
+    "efectos": { "crecimiento": -0.5, "estabilidad": -4 },
+    "texto": "Comunidades bloquean rutas de acceso a un proyecto extractivo. Mesa de diálogo convocada."
+  },
+  {
+    "id": "ola_inseguridad", "tag": "SOCIEDAD", "peso": 1, "negativo": true,
+    "cond": [{ "var": "ratio.seguridad", "op": "<", "value": 1 }],
+    "efectos": { "aprobacion": -4, "estabilidad": -4 },
+    "texto": "Ola de inseguridad en las grandes ciudades. Los noticieros ya no hablan de otra cosa."
+  },
+  {
+    "id": "escandalo", "tag": "ESCÁNDALO", "peso": 1, "negativo": true, "escandalo": true, "cond": [],
+    "efectos": { "aprobacion": -6, "gobernabilidad": -6 },
+    "texto": "Escándalo de corrupción en un ministerio. La oposición huele sangre y pide explicaciones."
+  },
+  {
+    "id": "funcionario_bolso", "tag": "ESCÁNDALO", "peso": 0.6, "negativo": true, "cond": [],
+    "efectos": { "aprobacion": -3 },
+    "texto": "Un funcionario de segunda línea es filmado con un bolso sospechoso. Dice que eran facturas."
+  },
+  {
+    "id": "corrida_cambiaria", "tag": "ECONOMÍA", "peso": 1.2, "negativo": true,
+    "cond": [{ "var": "reservas", "op": "<", "value": 5 }],
+    "efectos": { "reservas": -1.2, "inflacion": 8, "aprobacion": -3 },
+    "texto": "Corrida cambiaria. Las cuevas trabajan horas extra y el dólar paralelo sale en todos los zócalos."
+  },
+  {
+    "id": "suba_tasas_globales", "tag": "ECONOMÍA", "peso": 0.7, "negativo": true, "cond": [],
+    "efectos": { "crecimiento": -0.3 }, "prima": 0.8,
+    "texto": "Los bancos centrales del norte suben tasas. La plata se va a donde rinde y no es acá."
+  },
+  {
+    "id": "inversion_extranjera", "tag": "ECONOMÍA", "peso": 0.8, "negativo": false,
+    "cond": [{ "var": "gobernabilidad", "op": ">", "value": 50 }],
+    "efectos": { "crecimiento": 0.4, "reservas": 0.8 },
+    "temporal": { "efectos": { "crecimiento": 0.2 }, "duracion": 3 },
+    "texto": "Llega una inversión extranjera grande. Foto con casco y chaleco incluida."
+  },
+  {
+    "id": "triunfo_deportivo", "tag": "EVENTO", "peso": 0.4, "negativo": false, "cond": [],
+    "efectos": { "aprobacion": 4, "estabilidad": 3 },
+    "texto": "La selección gana un torneo internacional. Por un trimestre, nadie mira las cifras."
+  },
+  {
+    "id": "boom_turismo", "tag": "ECONOMÍA", "peso": 0.6, "negativo": false, "cond": [],
+    "efectos": { "reservas": 0.5, "crecimiento": 0.3 },
+    "texto": "Temporada turística récord. Los turistas compran todo; los locales miran los precios."
+  },
+  {
+    "id": "apagon", "tag": "GOBIERNO", "peso": 1, "negativo": true,
+    "cond": [{ "var": "ratio.energia", "op": "<", "value": 0.85 }],
+    "efectos": { "crecimiento": -0.5, "aprobacion": -4 },
+    "texto": "Apagón masivo en pleno pico de demanda. Falta inversión en energía y sobran velas."
+  },
+  {
+    "id": "brote_sanitario", "tag": "SOCIEDAD", "peso": 1, "negativo": true,
+    "cond": [{ "var": "ratio.salud", "op": "<", "value": 0.9 }],
+    "efectos": { "estabilidad": -4, "aprobacion": -4 },
+    "texto": "Brote de dengue con hospitales saturados. El sistema de salud muestra sus costuras."
+  },
+  {
+    "id": "mejora_calificacion", "tag": "ECONOMÍA", "peso": 0.7, "negativo": false,
+    "cond": [{ "var": "deuda", "op": "<", "value": 70 }, { "var": "inflacion", "op": "<", "value": 15 }],
+    "efectos": { "reservas": 0.3 }, "prima": -0.5,
+    "texto": "Una calificadora mejora la nota del país. El ministro lo comparte con emoji."
+  }
+]

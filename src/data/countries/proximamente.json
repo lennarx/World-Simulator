@@ -1,0 +1,11 @@
+[
+  { "id": "bolivia", "nombre": "Bolivia", "playable": false, "problema": "Protesta social y gobernabilidad frágil." },
+  { "id": "chile", "nombre": "Chile", "playable": false, "problema": "Macro sólida, Congreso trabado." },
+  { "id": "colombia", "nombre": "Colombia", "playable": false, "problema": "Seguridad y territorio." },
+  { "id": "ecuador", "nombre": "Ecuador", "playable": false, "problema": "Dolarizado: sin maquinita." },
+  { "id": "guyana", "nombre": "Guyana", "playable": false, "problema": "Boom petrolero en un país chico." },
+  { "id": "paraguay", "nombre": "Paraguay", "playable": false, "problema": "Recaudación baja." },
+  { "id": "surinam", "nombre": "Surinam", "playable": false, "problema": "Deuda y reestructuración." },
+  { "id": "uruguay", "nombre": "Uruguay", "playable": false, "problema": "Estable, pero la aprobación no se mueve." },
+  { "id": "venezuela", "nombre": "Venezuela", "playable": false, "problema": "Inflación y aislamiento." }
+]
