@@ -41,7 +41,7 @@ const AYUDAS: Partial<Record<AreaId, string>> = {
   asistencia: 'Aprobación y paz social rápidas. Cara.',
   energia: 'Subsidios populares; recortar mucho trae apagones.',
   seguridad: 'Estabilidad y aprobación. Recortar trae olas de inseguridad.',
-  defensa: 'Sube la capacidad militar (lento). Desfinanciar a las FF.AA. aumenta el riesgo institucional.',
+  defensa: 'Sube la capacidad militar (lento). Desfinanciar a las FF.AA. aumenta el riesgo institucional. En guerra tiene un piso obligatorio.',
   salud: 'Aprobación y estabilidad. Recortar trae brotes sanitarios.',
 };
 

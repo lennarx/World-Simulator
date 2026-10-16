@@ -219,6 +219,65 @@ export const CFG = {
     legadoPorRelacion: 0.2, // puntos de soberanía por punto de mejora de la relación promedio
   },
 
+  // ---------------------------------------------------------------- Guerra (Fase 3)
+  // La guerra tiene que COSTAR: la sim verifica que la estrategia belicista no domine.
+  guerra: {
+    multDefensaGuerra: 1.8, // piso de gasto en defensa durante la guerra (× base)
+    autorizacion: {
+      apoyo: { oficialismo: 15, aliado: 0, centro: -15, opositor: -35, regional: -10 },
+      bonoCrisis: 25, // si hay crisis abierta con el atacado, el Congreso acompaña más
+      bonoHostil: 10, // relación < -50
+      castigoSocio: 20, // atacar a un socio de tratado
+      castigoDecreto: 20, // gobernabilidad perdida por ir a la guerra sin autorización
+    },
+    declarar: {
+      relacionTerceros: -8,
+      relacionVecinosAtacado: -10,
+      relacionSociosDefensa: -15, // a tus aliados no les gusta que agredas
+      reservas: -1,
+      prima: 0.8,
+      rallyAgresion: 8, // "efecto bandera" inicial (aprobación)
+      rallyDefensa: 14,
+    },
+    frentes: {
+      escala: 10, // ancho del sigmoide de cada frente: más alto = más azar
+      avance: 7, // puntos de avance por frente ganado (−7 si se pierde)
+      desgasteGanador: 1, // capacidad militar perdida por frente
+      desgastePerdedor: 4,
+      esfuerzoEnemigoMilitar: 80, // la IA enemiga pone esto en frentes, el resto en sostenerse
+      ruidoEnemigo: 10,
+      bonusDefensa: 1.2, // pelear en casa
+      aporteAliado: 8, // capacidad extra por socio de defensa en una guerra defensiva
+    },
+    moral: { inicial: 60, defensiva: 15, porFrente: 5, porTurno: -2 },
+    porTurno: {
+      crecimiento: -0.8,
+      reservas: -0.4,
+      estabilidad: -2,
+      aprobacion: -2.5, // desgaste: el rally se evapora
+      costoHumano: 3,
+      costoHumanoPorFrentePerdido: 4,
+      aprobacionPorCostoHumano: -0.1,
+    },
+    alivioEconomia: 0.6, // con 100% en "economía" se evita esta fracción de los costos económicos
+    presion: { inicial: 10, porTurno: 12, multDefensiva: 0.5, alivioDiplomacia: 0.7, porCostoHumano: 0.1, umbralAviso: 70 },
+    armisticio: { base: 0.2, porDiplomacia: 0.4, porPresion: 0.3, porAvance: 0.4 },
+    umbralVictoria: 60, // |avance| para ganar o perder
+    fin: {
+      victoria: { aprobacion: 6, estabilidad: 0, gobernabilidad: 4 },
+      armisticio: { aprobacion: 2, estabilidad: 2, gobernabilidad: 0 },
+      cese_impuesto: { aprobacion: -3, estabilidad: 0, gobernabilidad: -3 },
+      derrota: { aprobacion: -15, estabilidad: -10, gobernabilidad: -15 },
+    },
+    relacionBasePosguerra: -30, // la relación base con el ex enemigo queda dañada
+    sanciones: { duracion: 6, reservas: -0.2, crecimiento: -0.3 },
+    probAtaqueNivel3: 0.25, // crisis de frontera en nivel 3: chance por turno de que el rival ataque
+    golpePorDerrota: 1.5, // multiplicador extra del riesgo de golpe tras una derrota reciente
+    turnosEfectoDerrota: 6,
+    juicioSinAutorizacion: 0.15, // prob. base de juicio político por guerra sin autorización
+    legado: { victoria: 6, armisticio: -2, cese_impuesto: -5, derrota: -20, en_curso: -8, porCostoHumano: 0.3 },
+  },
+
   // ---------------------------------------------------------------- Legado
   legado: {
     pesos: { crecimiento: 0.2, estabilidad: 0.2, bienestar: 0.2, soberania: 0.2, aprobacion: 0.2 },

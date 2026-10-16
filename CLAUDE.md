@@ -9,7 +9,7 @@
 ## 1. Visión y tono
 
 - Simulador de gobierno **por turnos**. El jugador es presidente/a de un país de Sudamérica y administra
-  presupuesto, política interna (Congreso), y en fases futuras diplomacia y fuerzas armadas.
+  presupuesto, política interna (Congreso), diplomacia y fuerzas armadas (incluida la guerra).
 - **1 turno = 1 trimestre. Mandato = 16 turnos (4 años).**
 - **Victoria**: puntaje de *legado* al final del mandato (crecimiento, estabilidad, bienestar, soberanía,
   aprobación) + bonus si hay reelección.
@@ -70,11 +70,13 @@ public/     ← icon.svg (fuente) + PNG generados para la PWA
 decisiones (UI o estrategia del sim)
    └─► advanceTurn(state, decisions)            src/engine/turn.ts
          1. budget.applyBudget      → déficit, financiamiento (deuda/emisión), servicio de deuda
-         2. congress.resolverLey / diplomacy.resolverTratado → UNA votación por turno (el tratado desplaza a la ley)
+         2. war.resolverDeclaracion / diplomacy.resolverTratado / congress.resolverLey
+            → UNA votación por turno (prioridad: autorización de guerra > tratado > ley)
          2b. diplomacy.aplicarAcciones → visitas, cooperación, protestas, gestos
          3. economy.stepEconomy     → crecimiento, inflación, desempleo, reservas, deuda/PBI (+ bonusDiplomatico)
          4. events.rollEvents       → eventos con condiciones (shocks), efectos inmediatos y temporales
          4b. diplomacy.stepRelaciones + stepCrisis → deriva de relaciones, obligaciones, crisis de frontera
+         4c. war.stepAtaqueEnemigo + stepGuerra + stepSanciones → ataque en crisis nivel 3, combate, sanciones
          5. politics.stepPolitics   → aprobación, gobernabilidad, estabilidad social, capacidad militar
          6. pressure.stepPressure   → desgaste acumulado (empuja hacia el final)
          7. endings.checkEnding     → derrota anticipada o fin de mandato (+ legado y reelección)
@@ -130,6 +132,29 @@ decisiones (UI o estrategia del sim)
 - **Legado**: la mejora de la relación promedio suma a "soberanía" (prestigio regional).
 - Eventos con `tag: DIPLOMACIA` y campo `diplomacia: { objetivo, delta }`; condiciones `relMinVecinos`, `relPromedio`.
 
+### Modelo (Fase 3 — Guerra)
+- **Declarar** (`Decisiones.guerra.declarar`): contra cualquiera de los 11. Ocupa la votación del turno (autorización
+  del Congreso con `congress.votar`; apoyo en `CFG.guerra.autorizacion`, más si hay crisis o relación < −50, menos si
+  es socio de tratado). Si la rechaza: `siRechaza: 'desistir' | 'avanzar'` (decreto ⇒ −gobernabilidad y habilita
+  juicio político aunque no haya escándalo).
+- **Costos al declarar** (`war.iniciarGuerra`): relación −100 con el atacado; terceros, vecinos del atacado y tus
+  socios de defensa bajan su relación; tratados con el atacado suspendidos; reservas y prima; rally de aprobación;
+  sanciones si la relación promedio queda < 0. Piso de gasto en defensa (×`multDefensaGuerra`) forzado en `turn.ts`.
+- **Guerra defensiva**: con crisis de frontera en nivel 3, el rival ataca con `probAtaqueNivel3` por turno
+  (autorizada de hecho, rally mayor, bonus de pelear en casa, socios de defensa suman capacidad).
+- **Combate** (`war.stepGuerra`, desde el turno siguiente a la declaración): esfuerzo (suma 100) entre aire, mar,
+  frontera, economía y diplomacia. Frentes según geografía (`militar.json` + vecinos): aire siempre, mar si ambos
+  tienen costa, frontera si son vecinos. Cada frente: sigmoide(propio − enemigo) con capacidad × esfuerzo × moral.
+  Ganar suma avance y desgasta al enemigo; perder resta avance, capacidad y moral. IA enemiga: reparte parejo con ruido.
+- **Costos por turno**: crecimiento, reservas (alivia el esfuerzo en "economía"), estabilidad, aprobación (desgaste)
+  y **costo humano** (índice 0–100, narrado con respeto: `LINEAS_GUERRA` en `texts.ts`).
+- **Presión internacional**: sube cada turno (menos si es defensiva o con esfuerzo diplomático; más con costo humano).
+  En 100 ⇒ cese del fuego impuesto.
+- **Finales**: victoria (avance ≥ 60), derrota (≤ −60), armisticio (si se propone; prob. por diplomacia, presión y
+  avance), cese impuesto. Efectos en `CFG.guerra.fin`; la relación base con el ex enemigo queda en −30.
+  Derrota reciente ⇒ ×`golpePorDerrota` en riesgo de golpe. Perder una guerra NO termina la partida por sí sola.
+- **Legado**: resultado ⇒ soberanía (`CFG.guerra.legado`), costo humano ⇒ estabilidad. `legado.guerra` es informativo.
+
 ### Dificultad por país (difícil *de forma distinta*)
 | País | Problema principal | Cómo se modela |
 |---|---|---|
@@ -168,6 +193,13 @@ crisis, p. ej. relación baja con Venezuela); Argentina arranca tensa con Chile.
 3. Efecto: acción en `aplicarAcciones`; tratado en `bonusDiplomatico` (si es económico) o en `resolverTratado` (si es one-shot).
 4. UI: listas `ACCIONES` / `NOMBRE_TRATADO` / `AYUDA_TRATADO` en `src/ui/screens/Diplomacia.tsx`.
 5. Tests en `tests/engine/diplomacy.test.ts` y `npm run sim`.
+
+### Cómo tocar la guerra
+- Números: todos en `CFG.guerra`. Capacidades enemigas y costas: `src/data/militar.json`.
+- Un frente nuevo: sumalo a `FrenteMilitar` (types), `FRENTES`/`DESTINOS` y `frentesDisponibles` (`war.ts`),
+  `NOMBRE_FRENTE` (`texts.ts`) y `NOMBRE_DESTINO` (`ui/components/GuerraCard.tsx`).
+- Textos de guerra: siempre en `LINEAS_GUERRA`, tono serio. Sin humor sobre víctimas.
+- Después: `npm test && npm run sim` y verificar que `belicista` NO domine.
 
 ### Cómo habilitar un país
 1. Completar su JSON en `src/data/countries/` (copiá la forma de `argentina.json`).
@@ -262,7 +294,55 @@ Lectura: ser activo en diplomacia vale ~10–20 pp de victoria vs. aislarse, sin
 Escalar crisis (populista) llega a nivel 3 en ~50–70% de partidas. Perú casi no ratifica tratados (Congreso hostil).
 Puntos flojos: Brasil-equilibrada en el límite (71%); Brasil-austeridad y "nada" nunca ganan; "gris" sigue siendo común.
 
-### Fase 3 — Militar (pendiente)
+### Fase 3 — Militar — ✅ HECHA (esperando OK del arquitecto para Fase 4)
+- [x] Datos: `militar.json` (capacidad ilustrativa + costa), bloque `CFG.guerra`, `LINEAS_GUERRA` (tono serio)
+- [x] Motor: `engine/war.ts` (declaración + autorización, costos, ataque enemigo en crisis nivel 3, frentes por
+      geografía, esfuerzo, presión internacional, armisticio, finales, sanciones); piso de defensa en `turn.ts`;
+      golpe/juicio en `endings.ts`; legado en `score.ts`; `STATE_VERSION` 3
+- [x] Guardado: `SAVE_VERSION` 3, migración encadenada v1→v2→v3
+- [x] UI: pestaña "Exterior" (ex Diplomacia); diálogo `<dialog>` de declaración con costos y votos esperados
+      (foco en "Cancelar", Escape cierra); tarjeta del conflicto con sliders de esfuerzo y armisticio; resumen en Panel
+      y desglose de conflictos en el Final
+- [x] Sim: estrategias `belicista` y `pacifista`; columnas guerra / gMil (% guerras ganadas) / durG (turnos)
+- [x] Tests: 63 (nuevos: `tests/engine/war.test.ts`, migración v2→v3)
+
+**Verificado (Chromium headless 390×844):** declaración desde el diálogo (teclado, Escape), votación en el parte,
+tarjeta del conflicto, sliders normalizados, guerra conservada tras recarga offline, fin de guerra y desglose en el
+Final, sin scroll horizontal ni errores de consola.
+
+**Balance Fase 3 (400 partidas, semillas 1000–1399; guerra = % partidas con guerra; gMil = % guerras ganadas;
+durG = turnos promedio por guerra):**
+```
+país       estrategia       victoria reelec legado turnos NaN crisis niv3 trat guerra gMil durG  finales
+argentina  equilibrada       55%      28%   57.0  16.0    0    0%   0%  5.0    0%    -  0.0  gris 46% · reel 28% · cumpl 27%
+argentina  populista          0%       0%   31.0  11.1    0   69%  56%  0.0   22%   0%  1.0  colap 86% · gris 13% · golpe 1% · juicio 0%
+argentina  austeridad        36%       0%   50.5  16.0    0    0%   0%  4.9    0%    -  0.0  gris 64% · cumpl 36% · juicio 0%
+argentina  nada               3%       1%   36.1  14.6    0   22%   0%  0.0    0%    -  0.0  gris 77% · colap 17% · cumpl 2% · juicio 2% · reel 1% · golpe 0%
+argentina  aislacionista     41%      23%   53.6  16.0    0   22%   0%  0.0    0%    -  0.0  gris 59% · reel 23% · cumpl 18%
+argentina  integracionista   40%      16%   50.4  16.0    0    0%   0% 11.2    0%    -  0.0  gris 60% · cumpl 24% · reel 16%
+argentina  belicista         10%      16%   41.0  16.0    0   98%  96%  1.5  100%  45%  4.3  gris 83% · reel 16% · cumpl 1%
+argentina  pacifista         55%      28%   57.0  16.0    0    0%   0%  5.0    0%    -  0.0  gris 46% · reel 28% · cumpl 27%
+brasil     equilibrada       71%      37%   59.1  16.0    0    0%   0%  8.1    0%    -  0.0  reel 37% · cumpl 34% · gris 29%
+brasil     populista          0%       0%   29.0  11.4    0   62%  49%  0.0   23%  11%  1.4  colap 100% · gris 0%
+brasil     austeridad         0%       0%   46.4  16.0    0    1%   0%  4.6    0%    -  0.0  gris 100% · reel 0%
+brasil     nada               0%       1%   28.7  16.0    0   66%   0%  0.0    0%    -  0.0  gris 100% · reel 1%
+brasil     aislacionista     48%      34%   55.8  16.0    0   67%   0%  0.0    0%    -  0.0  gris 52% · reel 34% · cumpl 14%
+brasil     integracionista   54%      26%   56.7  16.0    0    0%   0% 11.4    0%    -  0.0  gris 46% · cumpl 29% · reel 26%
+brasil     belicista          0%       5%   23.4  16.0    0  100%  99%  0.2  100%  61%  4.2  gris 96% · reel 5%
+brasil     pacifista         71%      37%   59.1  16.0    0    0%   0%  8.1    0%    -  0.0  reel 37% · cumpl 34% · gris 29%
+peru       equilibrada       62%      42%   58.1  15.9    0    2%   0%  0.1    0%    -  0.0  reel 42% · gris 36% · cumpl 20% · juicio 2%
+peru       populista         10%      27%   38.9  14.4    0   77%  69%  0.0   48%  21%  3.1  colap 46% · reel 27% · gris 27% · juicio 1%
+peru       austeridad         5%       4%   48.3  14.9    0    2%   0%  0.0    0%    -  0.0  gris 64% · juicio 31% · reel 4% · cumpl 2%
+peru       nada              12%      15%   47.2  15.0    0   71%   0%  0.0    0%    -  0.0  gris 61% · juicio 24% · reel 15% · cumpl 1%
+peru       aislacionista     53%      41%   56.2  16.0    0   75%   0%  0.0    0%    -  0.0  gris 45% · reel 41% · cumpl 13% · juicio 2%
+peru       integracionista   70%      43%   59.2  15.9    0    2%   0%  2.2    0%    -  0.0  reel 43% · gris 29% · cumpl 27% · juicio 2%
+peru       belicista          1%      33%   37.7  15.5    0  100%  98%  0.0  100%  47%  4.2  gris 48% · reel 33% · juicio 19%
+peru       pacifista         62%      42%   58.1  15.9    0    2%   0%  0.1    0%    -  0.0  reel 42% · gris 36% · cumpl 20% · juicio 2%
+```
+Lectura: la guerra NO conviene. Belicista gana 0–10% (vs 55–71% equilibrada) aunque gane ~45–60% de sus guerras;
+dura ~4 turnos. En Perú, la guerra sin autorización termina en juicio político (19%). Las guerras defensivas aparecen
+con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca la atacan.
+
 ### Fase 4 — 12 países con IA (pendiente)
 ### Fase 5 — Eventos regionales y puntaje final (pendiente)
 
@@ -333,8 +413,8 @@ Ver "Estado del proyecto". El próximo paso concreto está anotado al final de e
 > CFG único, RNG con semilla, tests y `npm run sim` con 400 partidas por estrategia). Al terminar: tests,
 > sim, commit, actualizá el checklist de CLAUDE.md y resumí en ≤10 líneas. No arranques la fase siguiente sin OK.
 
-**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 3 (Militar), sección 6. El gancho está en
-`diplomacy.stepCrisis` (nivel 3) y `ind.capacidadMilitar`; `state.guerra?` ya existe en los tipos.
+**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 4 (12 países con IA), sección 6. La IA de los otros
+países puede reutilizar `src/sim/strategies.ts` (posturas) y `war.iniciarGuerra(..., defensiva=true)` para atacar.
 Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia de "mandato gris".
 
 ---
@@ -363,6 +443,15 @@ Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia 
 - Bono de gobernabilidad por ratificar (2) menor que por ley (6): se firman muchos más tratados que leyes.
 - Brasil: tasa base 7→9 para que su problema (deuda cara) pese de verdad; antes era el país más fácil.
 - La guerra NO existe en Fase 2: la crisis nivel 3 queda como gancho con mediación internacional.
+
+- Fase 3: declarar ocupa la votación (prioridad guerra > tratado > ley); sin autorización se puede por decreto, con costo.
+- El turno de la declaración no se combate (movilización); el combate arranca el turno siguiente.
+- Piso de defensa aplicado en el motor (no se confía en la UI); el store lo refleja en el borrador.
+- Avance por frente 12→7: con 12 las guerras duraban ~3 turnos; con 7, ~4 (objetivo 3–8).
+- El prestigio regional del legado se mide contra `relacionesIniciales` (los datos), no contra `relacionesBase`,
+  porque una guerra cambia la base con el ex enemigo.
+- Perder una guerra no termina la partida: hunde indicadores y multiplica el riesgo de golpe (decisión del arquitecto).
+- La guerra vive en la pestaña "Exterior" para no tener 6 pestañas en el celular.
 
 ### Pendiente / no verificado
 - Instalación de la PWA en un celular real (Android/iOS) — solo se puede verificar a mano.

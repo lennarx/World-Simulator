@@ -3,6 +3,7 @@ import { CFG } from '../data/config';
 import { MENSAJES_FINAL } from '../data/texts';
 import type { Rng } from './rng';
 import { calcularLegado } from './score';
+import { derrotaReciente, guerraSinAutorizacion } from './war';
 import type { EntradaParte, Final, GameState, TipoFinal } from './types';
 
 const F = CFG.finales;
@@ -19,12 +20,16 @@ export function probGolpe(s: GameState): number {
   const gap = F.golpeEstabilidad - i.estabilidad + (F.golpeGobernabilidad - i.gobernabilidad);
   // Fuerzas armadas desfinanciadas = más malestar (gancho con Fase 3).
   const malestarMilitar = 1 + (50 - i.capacidadMilitar) / 100;
-  return Math.min(0.9, (F.golpeProbBase + gap * F.golpePorPunto) * malestarMilitar);
+  // Una derrota militar reciente multiplica el malestar (Fase 3).
+  const porDerrota = derrotaReciente(s) ? CFG.guerra.golpePorDerrota : 1;
+  return Math.min(0.9, (F.golpeProbBase + gap * F.golpePorPunto) * malestarMilitar * porDerrota);
 }
 
 export function probJuicio(s: GameState): number {
-  if (s.escandaloActivo <= 0 || fraccionHostil(s) < F.juicioUmbralBancas) return 0;
-  const p = (F.juicioProbBase + Math.max(0, 40 - s.ind.aprobacion) * F.juicioPorDesaprobacion) * s.perfil.riesgoJuicio;
+  const sinAutorizacion = guerraSinAutorizacion(s);
+  if ((s.escandaloActivo <= 0 && !sinAutorizacion) || fraccionHostil(s) < F.juicioUmbralBancas) return 0;
+  const base = (s.escandaloActivo > 0 ? F.juicioProbBase : 0) + (sinAutorizacion ? CFG.guerra.juicioSinAutorizacion : 0);
+  const p = (base + Math.max(0, 40 - s.ind.aprobacion) * F.juicioPorDesaprobacion) * s.perfil.riesgoJuicio;
   return Math.min(0.9, p);
 }
 

@@ -1,5 +1,6 @@
 // Estado de UI (Zustand). Llama al motor; el motor nunca conoce a la UI.
 import { create } from 'zustand';
+import { CFG } from '../data/config';
 import { getPais } from '../data/countries';
 import { advanceTurn, createGame, decisionesActuales, interesesExigibles, type Decisiones, type GameState } from '../engine';
 import { borrarLocal, cargarLocal, crearSave, guardarLocal, type ParteTurno, type SaveFile } from './save';
@@ -69,6 +70,11 @@ export const useGame = create<Store>((set, get) => ({
     const { state, report } = advanceTurn(game, draft);
     // El borrador del turno siguiente arranca igual al anterior, pero sin ley ni concesiones.
     const nextDraft = { ...decisionesActuales(state), presupuesto: { ...draft.presupuesto } };
+    // En guerra el motor impone un piso de defensa: lo reflejamos en el borrador para que la UI no mienta.
+    if (state.guerra) {
+      const piso = state.presupuestoBase.defensa * CFG.guerra.multDefensaGuerra;
+      nextDraft.presupuesto.defensa = Math.max(nextDraft.presupuesto.defensa, piso);
+    }
     if (get().autoIntereses) {
       const minimo = Math.ceil(interesesExigibles(state) * 10) / 10;
       nextDraft.presupuesto.deuda = Math.max(nextDraft.presupuesto.deuda, minimo);

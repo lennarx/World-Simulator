@@ -1,7 +1,7 @@
 // Guardado: localStorage (siempre con try/catch: modo privado, cuota llena, etc.) + export/import JSON.
 import { relacionesIniciales, STATE_VERSION, type Decisiones, type EntradaParte, type GameState } from '../engine';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 const KEY = 'simgob:partida';
 
 export interface ParteTurno {
@@ -23,17 +23,25 @@ export function crearSave(state: GameState, draft: Decisiones | null, partes: Pa
 }
 
 /**
- * Migraciones de saves viejos. v1 (Fase 1) -> v2 (Fase 2): se agregan relaciones, tratados y crisis.
+ * Migraciones de saves viejos, encadenadas (v1 -> v2 -> v3 ...).
+ * - v1 (Fase 1) -> v2 (Fase 2): relaciones, tratados y crisis.
+ * - v2 (Fase 2) -> v3 (Fase 3): guerras pasadas, sanciones y decisión de guerra en el borrador.
  * Si cambia la forma del estado, sumá un paso acá y subí SAVE_VERSION y STATE_VERSION.
  */
 export function migrarSave(d: Partial<SaveFile>): Partial<SaveFile> {
-  if (d.version === 1 && d.state && typeof d.state.paisId === 'string') {
-    const rel = relacionesIniciales(d.state.paisId);
-    const state = { ...d.state, version: 2, relaciones: { ...rel }, relacionesBase: rel, tratados: [], crisis: null, crisisMaxNivel: 0 };
-    const draft = d.draft ? { ...d.draft, diplomacia: [], tratado: null, respuestaCrisis: null } : null;
-    return { ...d, version: 2, state, draft };
+  let out = d;
+  if (out.version === 1 && out.state && typeof out.state.paisId === 'string') {
+    const rel = relacionesIniciales(out.state.paisId);
+    const state = { ...out.state, version: 2, relaciones: { ...rel }, relacionesBase: rel, tratados: [], crisis: null, crisisMaxNivel: 0 };
+    const draft = out.draft ? { ...out.draft, diplomacia: [], tratado: null, respuestaCrisis: null } : null;
+    out = { ...out, version: 2, state, draft };
   }
-  return d;
+  if (out.version === 2 && out.state) {
+    const state = { ...out.state, version: 3, guerrasPasadas: [], sanciones: [] };
+    const draft = out.draft ? { ...out.draft, guerra: { declarar: null, siRechaza: 'desistir' as const, esfuerzo: null, armisticio: false } } : null;
+    out = { ...out, version: 3, state, draft };
+  }
+  return out;
 }
 
 /** Validación mínima de forma. Devuelve el save o un mensaje de error legible. */
@@ -48,6 +56,7 @@ export function validarSave(data: unknown): SaveFile | string {
   if (s.version !== STATE_VERSION) return 'La partida es de otra versión del motor.';
   if (Object.values(s.ind).some((v) => typeof v !== 'number' || !Number.isFinite(v))) return 'La partida tiene valores inválidos.';
   if (!s.relaciones || typeof s.relaciones !== 'object' || !Array.isArray(s.tratados)) return 'A la partida le faltan datos diplomáticos.';
+  if (!Array.isArray(s.guerrasPasadas) || !Array.isArray(s.sanciones)) return 'A la partida le faltan datos militares.';
   return { ...(d as SaveFile), partes: Array.isArray(d.partes) ? d.partes : [], draft: d.draft ?? null };
 }
 

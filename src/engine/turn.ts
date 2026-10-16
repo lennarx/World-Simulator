@@ -9,6 +9,7 @@ import { checkEnding } from './endings';
 import { aplicarTemporales, rollEvents } from './events';
 import { stepPolitics } from './politics';
 import { stepPressure } from './pressure';
+import { resolverDeclaracion, sanitizarGuerra, stepAtaqueEnemigo, stepGuerra, stepSanciones } from './war';
 import { createRng } from './rng';
 import type { Decisiones, EntradaParte, GameState, ResultadoTurno } from './types';
 import { round } from './util';
@@ -24,6 +25,7 @@ export function decisionesActuales(s: GameState): Decisiones {
     diplomacia: [],
     tratado: null,
     respuestaCrisis: null,
+    guerra: { declarar: null, siRechaza: 'desistir', esfuerzo: s.guerra?.ultimoEsfuerzo ?? null, armisticio: false },
   };
 }
 
@@ -33,6 +35,14 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
   const rng = createRng(s.rng);
   const report: EntradaParte[] = [];
   const d: Decisiones = { ...sanitizarDecisiones(decisionesCrudas), ...sanitizarDiplomacia(s, decisionesCrudas) };
+  d.guerra = sanitizarGuerra(s, decisionesCrudas);
+  // Declarar la guerra ocupa la votación del turno (desplaza a ley y tratado).
+  if (d.guerra.declarar) {
+    d.ley = null;
+    d.tratado = null;
+  }
+  // En guerra, el gasto en defensa tiene piso (se aplica en el motor: no se confía en la UI).
+  if (s.guerra) d.presupuesto.defensa = Math.max(d.presupuesto.defensa, s.presupuestoBase.defensa * CFG.guerra.multDefensaGuerra);
   s.turno += 1;
 
   const antes = { ...prev.ind };
@@ -45,7 +55,8 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
 
   // 2. Congreso.
   aplicarConcesiones(s, d.concesiones, report);
-  if (d.tratado) resolverTratado(s, d, rng, report);
+  if (d.guerra.declarar) resolverDeclaracion(s, d, rng, report);
+  else if (d.tratado) resolverTratado(s, d, rng, report);
   else resolverLey(s, d, rng, report);
 
   // 2b. Diplomacia: acciones del turno.
@@ -61,6 +72,11 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
   // 4b. Relaciones (deriva y obligaciones) y crisis de frontera.
   stepRelaciones(s, fiscal, report);
   stepCrisis(s, d.respuestaCrisis, rng, report);
+
+  // 4c. Guerra: ataque enemigo (crisis nivel 3), combate del turno y sanciones.
+  stepAtaqueEnemigo(s, rng, report);
+  stepGuerra(s, d.guerra, rng, report);
+  stepSanciones(s, report);
 
   // 5. Política y sociedad.
   stepPolitics(s, rng);

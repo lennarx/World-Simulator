@@ -3,10 +3,17 @@ import { getPais } from '../../data/countries';
 import { TITULOS_FINAL } from '../../data/texts';
 import { Bar } from '../components/Bar';
 import { IllustrativeBadge } from '../components/IllustrativeBadge';
-import { relacionPromedio } from '../../engine';
+import { nombrePais, relacionPromedio, type TipoResultadoGuerra } from '../../engine';
 import { fmt, INDICADORES } from '../format';
 import { borrarLocal, exportarArchivo } from '../save';
 import { useGame } from '../store';
+
+const RESULTADO_GUERRA: Record<TipoResultadoGuerra, string> = {
+  victoria: 'Victoria',
+  armisticio: 'Armisticio',
+  cese_impuesto: 'Cese del fuego impuesto',
+  derrota: 'Derrota',
+};
 
 const COMPONENTES = [
   ['crecimiento', 'Crecimiento'],
@@ -81,6 +88,23 @@ export function Final() {
             {game.crisisMaxNivel > 0 ? ` · crisis hasta nivel ${game.crisisMaxNivel}` : ''}
           </span>
         </div>
+        {(game.guerrasPasadas.length > 0 || game.guerra) && (
+          <div className="stack" style={{ gap: 4 }}>
+            <div className="row spread small">
+              <span>Conflictos armados (incluido en soberanía y estabilidad)</span>
+              <span>{f.legado.guerra}</span>
+            </div>
+            <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+              {game.guerrasPasadas.map((g, i) => (
+                <li key={i}>
+                  {nombrePais(g.contra)}: {RESULTADO_GUERRA[g.resultado]} ({g.hasta - g.desde} trimestres{g.defensiva ? ', defensiva' : ''}
+                  {g.autorizada ? '' : ', sin autorización'}) · costo humano {g.costoHumano}/100
+                </li>
+              ))}
+              {game.guerra && <li>{nombrePais(game.guerra.contra)}: conflicto sin resolver al final del mandato.</li>}
+            </ul>
+          </div>
+        )}
         <div className="row spread small">
           <span>Bonus por reelección</span>
           <span>+{f.legado.bonusReeleccion}</span>

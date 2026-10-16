@@ -19,3 +19,14 @@ export {
   bonusDiplomatico,
   TIPOS_TRATADO,
 } from './diplomacy';
+export {
+  frentesDisponibles,
+  normalizarEsfuerzo,
+  esfuerzoPorDefecto,
+  votosAutorizacion,
+  probArmisticio,
+  capacidadPais,
+  capacidadPropia,
+  DESTINOS,
+  FRENTES,
+} from './war';

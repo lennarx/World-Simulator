@@ -2,6 +2,7 @@ import { CFG } from '../../data/config';
 import { getPais } from '../../data/countries';
 import { getLey, nombrePais, previewFiscal, probGolpe, probJuicio, type IndicadorId } from '../../engine';
 import { Bar } from '../components/Bar';
+import { GuerraCard } from '../components/GuerraCard';
 import { Indicator } from '../components/Indicator';
 import { fmt } from '../format';
 import { useGame } from '../store';
@@ -22,6 +23,7 @@ export function Panel() {
 
   return (
     <main className="stack">
+      <GuerraCard compacta />
       <section className="card stack">
         <p className="small muted">{pais.problema}</p>
         <div className="row spread small">
@@ -70,7 +72,15 @@ export function Panel() {
         {f.enAtraso && <p className="bad small">Pagás menos que los intereses exigibles ({fmt(f.intereses)}% PBI): vas a entrar en atraso.</p>}
         <div className="row spread small">
           <span>En el Congreso</span>
-          <span>{draft.tratado ? `Tratado de ${draft.tratado.tipo} con ${nombrePais(draft.tratado.con)}` : ley ? ley.nombre : 'Nada'}</span>
+          <span>
+            {draft.guerra.declarar
+              ? `Autorización de guerra contra ${nombrePais(draft.guerra.declarar)}`
+              : draft.tratado
+                ? `Tratado de ${draft.tratado.tipo} con ${nombrePais(draft.tratado.con)}`
+                : ley
+                  ? ley.nombre
+                  : 'Nada'}
+          </span>
         </div>
         <div className="row spread small">
           <span>Acciones diplomáticas</span>
@@ -84,7 +94,7 @@ export function Panel() {
             Congreso
           </button>
           <button type="button" onClick={() => irA('diplomacia')}>
-            Diplomacia
+            Exterior
           </button>
           <button type="button" className="primary" onClick={cerrar}>
             Cerrar trimestre
