@@ -59,6 +59,8 @@ export function sanitizarDecisiones(d: Decisiones): Decisiones {
     diplomacia: d.diplomacia ?? [],
     tratado: d.tratado ?? null,
     respuestaCrisis: d.respuestaCrisis ?? null,
+    // La parte de guerra se valida contra el estado en war.sanitizarGuerra.
+    guerra: d.guerra ?? { declarar: null, siRechaza: 'desistir', esfuerzo: null, armisticio: false },
   };
 }
 

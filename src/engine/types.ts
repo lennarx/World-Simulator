@@ -58,9 +58,41 @@ export interface EfectoTemporal {
   turnosRestantes: number;
 }
 
+// ---------------------------------------------------------------- Guerra (Fase 3)
+export type FrenteMilitar = 'aire' | 'mar' | 'frontera';
+export type DestinoEsfuerzo = FrenteMilitar | 'economia' | 'diplomacia';
+/** Reparto del esfuerzo del turno: suma 100. */
+export type Esfuerzo = Record<DestinoEsfuerzo, number>;
+export type TipoResultadoGuerra = 'victoria' | 'armisticio' | 'cese_impuesto' | 'derrota';
+
 export interface EstadoGuerra {
-  // Reservado para Fase 3. Opcional en GameState para no romper saves.
   contra: string;
+  desde: number; // turno de inicio
+  turnos: number;
+  defensiva: boolean; // nos atacaron
+  autorizada: boolean; // la votó el Congreso (las defensivas, siempre)
+  avance: number; // -100..100 (positivo = ganamos terreno)
+  presion: number; // presión internacional 0..100 (100 = cese del fuego impuesto)
+  costoHumano: number; // índice 0..100, se informa con respeto
+  capacidadEnemiga: number;
+  moral: number; // 0..100
+  ultimoEsfuerzo: Esfuerzo;
+  ultimosFrentes: Partial<Record<FrenteMilitar, 'ganado' | 'perdido'>>;
+}
+
+export interface ResultadoGuerra {
+  contra: string;
+  desde: number;
+  hasta: number;
+  defensiva: boolean;
+  resultado: TipoResultadoGuerra;
+  costoHumano: number;
+  autorizada: boolean;
+}
+
+export interface Sancion {
+  motivo: string;
+  turnosRestantes: number;
 }
 
 export interface PerfilPais {
@@ -91,7 +123,7 @@ export interface DatosPais {
 }
 
 export interface EntradaParte {
-  tag: 'ECONOMÍA' | 'SOCIEDAD' | 'CONGRESO' | 'CLIMA' | 'ESCÁNDALO' | 'GOBIERNO' | 'EVENTO' | 'PRESIÓN' | 'DIPLOMACIA' | 'FINAL';
+  tag: 'ECONOMÍA' | 'SOCIEDAD' | 'CONGRESO' | 'CLIMA' | 'ESCÁNDALO' | 'GOBIERNO' | 'EVENTO' | 'PRESIÓN' | 'DIPLOMACIA' | 'GUERRA' | 'FINAL';
   texto: string;
 }
 
@@ -111,6 +143,8 @@ export interface Legado {
   soberania: number;
   aprobacion: number;
   bonusReeleccion: number;
+  /** Informativo: cuánto sumaron/restaron las guerras (ya incluido en soberanía y estabilidad). */
+  guerra: number;
   total: number;
 }
 
@@ -158,6 +192,18 @@ export interface Decisiones {
   tratado: { tipo: TipoTratado; con: string } | null;
   /** Respuesta a la crisis de frontera activa (null = ignorar). */
   respuestaCrisis: RespuestaCrisis | null;
+  guerra: DecisionGuerra;
+}
+
+export interface DecisionGuerra {
+  /** Declarar la guerra a este país (ocupa la votación del turno: pide autorización al Congreso). */
+  declarar: string | null;
+  /** Si el Congreso rechaza la autorización: desistir o ir igual por decreto. */
+  siRechaza: 'desistir' | 'avanzar';
+  /** Reparto del esfuerzo durante la guerra (null = reparto por defecto). */
+  esfuerzo: Esfuerzo | null;
+  /** Proponer un armisticio este turno. */
+  armisticio: boolean;
 }
 
 export interface Snapshot {
@@ -200,7 +246,10 @@ export interface GameState {
   tratados: Tratado[];
   crisis: CrisisFrontera | null;
   crisisMaxNivel: number; // máximo nivel alcanzado en la partida (para el sim y el final)
+  // Guerra (Fase 3)
   guerra?: EstadoGuerra;
+  guerrasPasadas: ResultadoGuerra[];
+  sanciones: Sancion[];
 }
 
 export interface ResultadoTurno {

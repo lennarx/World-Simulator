@@ -1,0 +1,17 @@
+{
+  "_nota": "Capacidad militar ILUSTRATIVA (0-100) y si el país tiene costa. Para los jugables, la capacidad del jugador sale de state.ind.capacidadMilitar; este valor se usa cuando son el ENEMIGO.",
+  "paises": {
+    "argentina": { "capacidad": 40, "mar": true },
+    "bolivia": { "capacidad": 28, "mar": false },
+    "brasil": { "capacidad": 58, "mar": true },
+    "chile": { "capacidad": 52, "mar": true },
+    "colombia": { "capacidad": 50, "mar": true },
+    "ecuador": { "capacidad": 34, "mar": true },
+    "guyana": { "capacidad": 12, "mar": true },
+    "paraguay": { "capacidad": 22, "mar": false },
+    "peru": { "capacidad": 45, "mar": true },
+    "surinam": { "capacidad": 10, "mar": true },
+    "uruguay": { "capacidad": 22, "mar": true },
+    "venezuela": { "capacidad": 42, "mar": true }
+  }
+}

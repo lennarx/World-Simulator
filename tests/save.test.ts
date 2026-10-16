@@ -28,6 +28,22 @@ describe('guardado', () => {
     expect(() => advanceTurn(v.state, decisionesActuales(v.state))).not.toThrow();
   });
 
+  it('migra un save v2 (Fase 2) agregando guerras pasadas y sanciones', () => {
+    const s = nuevo('brasil', 7);
+    const v2: Record<string, unknown> = { ...s, version: 2 };
+    delete v2.guerrasPasadas;
+    delete v2.sanciones;
+    const d: Record<string, unknown> = { ...decisionesActuales(s) };
+    delete d.guerra;
+    const v = validarSave({ app: 'simulador-gobierno-sa', version: 2, savedAt: '', state: v2, draft: d, partes: [] });
+    expect(typeof v).not.toBe('string');
+    if (typeof v === 'string') return;
+    expect(v.state.guerrasPasadas).toEqual([]);
+    expect(v.state.sanciones).toEqual([]);
+    expect(v.draft?.guerra.declarar).toBeNull();
+    expect(() => advanceTurn(v.state, v.draft!)).not.toThrow();
+  });
+
   it('rechaza archivos ajenos o dañados', () => {
     expect(typeof validarSave({ app: 'otra-cosa' })).toBe('string');
     expect(typeof validarSave(null)).toBe('string');

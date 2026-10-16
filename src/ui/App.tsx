@@ -34,7 +34,7 @@ const TABS: [Pantalla, string][] = [
   ['panel', 'Panel'],
   ['presupuesto', 'Presupuesto'],
   ['congreso', 'Congreso'],
-  ['diplomacia', 'Diplomacia'],
+  ['diplomacia', 'Exterior'],
   ['parte', 'Partes'],
 ];
 

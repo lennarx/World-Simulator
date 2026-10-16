@@ -17,6 +17,10 @@ export interface FilaSim {
   conCrisis: number; // partidas con al menos una crisis de frontera
   crisisNivel3: number; // partidas que llegaron al nivel 3 (gancho Fase 3)
   tratadosMedio: number;
+  conGuerra: number; // partidas con al menos una guerra
+  victoriasMilitares: number; // guerras ganadas (total)
+  guerras: number; // guerras terminadas o en curso (total)
+  turnosGuerra: number; // turnos de guerra promedio por guerra
 }
 
 function tieneNaN(s: GameState): boolean {
@@ -39,7 +43,7 @@ export function correrSim(n: number): FilaSim[] {
   const filas: FilaSim[] = [];
   for (const pais of PAISES_JUGABLES) {
     for (const estrategia of Object.keys(ESTRATEGIAS)) {
-      const fila: FilaSim = { pais: pais.id, estrategia, partidas: n, victorias: 0, reelecciones: 0, legadoMedio: 0, turnosMedio: 0, finales: {}, nan: 0, conCrisis: 0, crisisNivel3: 0, tratadosMedio: 0 };
+      const fila: FilaSim = { pais: pais.id, estrategia, partidas: n, victorias: 0, reelecciones: 0, legadoMedio: 0, turnosMedio: 0, finales: {}, nan: 0, conCrisis: 0, crisisNivel3: 0, tratadosMedio: 0, conGuerra: 0, victoriasMilitares: 0, guerras: 0, turnosGuerra: 0 };
       for (let i = 0; i < n; i++) {
         const { state, nan } = jugar(pais.id, estrategia, 1000 + i);
         const f = state.final!;
@@ -52,7 +56,13 @@ export function correrSim(n: number): FilaSim[] {
         if (state.crisisMaxNivel > 0) fila.conCrisis++;
         if (state.crisisMaxNivel >= 3) fila.crisisNivel3++;
         fila.tratadosMedio += state.tratados.length / n;
+        const guerras = state.guerrasPasadas.length + (state.guerra ? 1 : 0);
+        if (guerras > 0) fila.conGuerra++;
+        fila.guerras += guerras;
+        fila.victoriasMilitares += state.guerrasPasadas.filter((g) => g.resultado === 'victoria').length;
+        fila.turnosGuerra += state.guerrasPasadas.reduce((a, g) => a + (g.hasta - g.desde), 0) + (state.guerra ? state.guerra.turnos : 0);
       }
+      if (fila.guerras) fila.turnosGuerra /= fila.guerras;
       filas.push(fila);
     }
   }
@@ -71,14 +81,14 @@ const ABREV: Record<TipoFinal, string> = {
 
 function imprimir(filas: FilaSim[]) {
   const pct = (x: number, n: number) => `${Math.round((100 * x) / n)}%`.padStart(4);
-  console.log('país       estrategia       victoria reelec legado turnos NaN crisis niv3 trat  finales');
+  console.log('país       estrategia       victoria reelec legado turnos NaN crisis niv3 trat guerra gMil durG  finales');
   for (const f of filas) {
     const fin = (Object.entries(f.finales) as [TipoFinal, number][])
       .sort((a, b) => b[1] - a[1])
       .map(([k, v]) => `${ABREV[k]} ${pct(v, f.partidas).trim()}`)
       .join(' · ');
     console.log(
-      `${f.pais.padEnd(10)} ${f.estrategia.padEnd(16)} ${pct(f.victorias, f.partidas)}     ${pct(f.reelecciones, f.partidas)}  ${f.legadoMedio.toFixed(1).padStart(5)} ${f.turnosMedio.toFixed(1).padStart(5)}  ${String(f.nan).padStart(3)}  ${pct(f.conCrisis, f.partidas)} ${pct(f.crisisNivel3, f.partidas)} ${f.tratadosMedio.toFixed(1).padStart(4)}  ${fin}`,
+      `${f.pais.padEnd(10)} ${f.estrategia.padEnd(16)} ${pct(f.victorias, f.partidas)}     ${pct(f.reelecciones, f.partidas)}  ${f.legadoMedio.toFixed(1).padStart(5)} ${f.turnosMedio.toFixed(1).padStart(5)}  ${String(f.nan).padStart(3)}  ${pct(f.conCrisis, f.partidas)} ${pct(f.crisisNivel3, f.partidas)} ${f.tratadosMedio.toFixed(1).padStart(4)}  ${pct(f.conGuerra, f.partidas)} ${(f.guerras ? pct(f.victoriasMilitares, f.guerras) : '   -')} ${f.turnosGuerra.toFixed(1).padStart(4)}  ${fin}`,
     );
   }
 }

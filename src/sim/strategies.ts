@@ -4,7 +4,8 @@ import { getLey } from '../engine/data';
 import { previewFiscal, interesesExigibles } from '../engine/budget';
 import { votosEsperados } from '../engine/congress';
 import { pesoComercial, peorVecino, puedeFirmar, tieneTratado, votosTratado } from '../engine/diplomacy';
-import type { AccionDiplomatica, Decisiones, GameState, Presupuesto, TipoTratado } from '../engine/types';
+import type { AccionDiplomatica, DecisionGuerra, Decisiones, GameState, Presupuesto, TipoTratado } from '../engine/types';
+import { capacidadPais, esfuerzoPorDefecto, frentesDisponibles } from '../engine/war';
 import { decisionesActuales } from '../engine/turn';
 
 export type Estrategia = (s: GameState) => Decisiones;
@@ -30,6 +31,16 @@ function elegirLey(s: GameState, preferidas: string[], umbral: number, maxConces
     }
   }
   return { ley: null, concesiones: {} };
+}
+
+// ---------------------------------------------------------------- Guerra de las estrategias
+
+const sinGuerra = (): DecisionGuerra => ({ declarar: null, siRechaza: 'desistir', esfuerzo: null, armisticio: false });
+
+/** Respuesta por defecto a una guerra (casi siempre defensiva): reparto estándar y armisticio si va mal. */
+function guerraPorDefecto(s: GameState, pideArmisticio: (s: GameState) => boolean): DecisionGuerra {
+  if (!s.guerra) return sinGuerra();
+  return { ...sinGuerra(), esfuerzo: esfuerzoPorDefecto(frentesDisponibles(s.paisId, s.guerra.contra)), armisticio: pideArmisticio(s) };
 }
 
 // ---------------------------------------------------------------- Diplomacia de las estrategias
@@ -66,7 +77,7 @@ export const equilibrada: Estrategia = (s) => {
   const base = s.presupuestoBase;
   const p = escalar(base, { infraestructura: 1.25, educacion: 1.1, salud: 1.05, seguridad: 1.1, energia: 1.05 });
   p.deuda = Math.min(CFG.fiscal.areaMax, interesesExigibles(s) + 0.2);
-  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase, financiamiento: 'deuda', ley: null, concesiones: {}, diplomacia: [], tratado: null, respuestaCrisis: null };
+  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase, financiamiento: 'deuda', ley: null, concesiones: {}, diplomacia: [], tratado: null, respuestaCrisis: null, guerra: sinGuerra() };
   // Si el déficit es alto, recorta asistencia/energía un poco y sube impuestos de a poco.
   let f = previewFiscal(s, d);
   if (f.deficit > 2.5) {
@@ -82,6 +93,7 @@ export const equilibrada: Estrategia = (s) => {
   d.diplomacia = visitas(s, 1);
   if (!d.ley) d.tratado = elegirTratado(s, ['comercio'], 0.58);
   d.respuestaCrisis = s.crisis ? 'negociar' : null;
+  d.guerra = guerraPorDefecto(s, (x) => x.guerra!.avance < 0 || x.guerra!.turnos >= 3);
   return d;
 };
 
@@ -97,12 +109,14 @@ export const populista: Estrategia = (s) => {
     diplomacia: [],
     tratado: null,
     respuestaCrisis: null,
+    guerra: sinGuerra(),
   };
   Object.assign(d, elegirLey(s, ['ampliacion_transferencias', 'emergencia_economica'], 0.5, 2));
   // Diplomacia de tribuna: si la aprobación flaquea, le pega al vecino; ante una crisis, escala.
   const peor = peorVecino(s);
   if (peor && s.ind.aprobacion < 45) d.diplomacia = [{ tipo: 'gesto', con: peor }];
   d.respuestaCrisis = s.crisis ? 'escalar' : null;
+  d.guerra = guerraPorDefecto(s, () => false); // "no se negocia con el enemigo"
   return d;
 };
 
@@ -110,18 +124,19 @@ export const populista: Estrategia = (s) => {
 export const austeridad: Estrategia = (s) => {
   const p = escalar(s.presupuestoBase, { asistencia: 0.88, energia: 0.75, salud: 0.95, educacion: 0.95, infraestructura: 0.92, defensa: 0.9 });
   p.deuda = Math.min(CFG.fiscal.areaMax, interesesExigibles(s) + 0.5);
-  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase + 1, financiamiento: 'deuda', ley: null, concesiones: {}, diplomacia: [], tratado: null, respuestaCrisis: null };
+  const d: Decisiones = { presupuesto: p, impuestos: s.impuestosBase + 1, financiamiento: 'deuda', ley: null, concesiones: {}, diplomacia: [], tratado: null, respuestaCrisis: null, guerra: sinGuerra() };
   Object.assign(d, elegirLey(s, ['reforma_previsional', 'reforma_laboral', 'regla_fiscal', 'autonomia_bc', 'reforma_tributaria'], 0.52, 2));
   d.diplomacia = visitas(s, 1);
   if (!d.ley) d.tratado = elegirTratado(s, ['comercio', 'integracion'], 0.52);
   d.respuestaCrisis = s.crisis ? 'negociar' : null;
+  d.guerra = guerraPorDefecto(s, () => true); // la guerra es cara: pide armisticio ya
   return d;
 };
 
 /** Aislacionista: la misma economía que la equilibrada, pero sin diplomacia (ignora crisis, cero tratados). */
 export const aislacionista: Estrategia = (s) => {
   const d = equilibrada(s);
-  return { ...d, diplomacia: [], tratado: null, respuestaCrisis: null };
+  return { ...d, diplomacia: [], tratado: null, respuestaCrisis: null, guerra: guerraPorDefecto(s, () => false) };
 };
 
 /** Integracionista: economía equilibrada sin emisión + prioriza tratados y visitas (2 por turno). */
@@ -138,4 +153,51 @@ export const integracionista: Estrategia = (s) => {
   return d;
 };
 
-export const ESTRATEGIAS: Record<string, Estrategia> = { equilibrada, populista, austeridad, nada, aislacionista, integracionista };
+/**
+ * Belicista: economía equilibrada pero con defensa al doble; escala crisis y le declara la guerra al peor vecino
+ * en cuanto su capacidad supera a la del rival (aunque el Congreso diga que no). Nunca pide armisticio.
+ */
+export const belicista: Estrategia = (s) => {
+  const d = equilibrada(s);
+  d.presupuesto.defensa = s.presupuestoBase.defensa * 2;
+  d.diplomacia = [];
+  d.respuestaCrisis = s.crisis ? 'escalar' : null;
+  if (s.guerra) {
+    const frentes = frentesDisponibles(s.paisId, s.guerra.contra);
+    const esfuerzo = { aire: 0, mar: 0, frontera: 0, economia: 10, diplomacia: 0 };
+    for (const f of frentes) esfuerzo[f] = 90 / frentes.length;
+    d.guerra = { ...sinGuerra(), esfuerzo };
+    return d;
+  }
+  const objetivo = peorVecino(s);
+  if (objetivo && s.ind.capacidadMilitar > capacidadPais(objetivo)) {
+    d.guerra = { ...sinGuerra(), declarar: objetivo, siRechaza: 'avanzar' };
+    d.ley = null;
+    d.tratado = null;
+  }
+  return d;
+};
+
+/** Pacifista: equilibrada, negocia toda crisis y, si la atacan, pide armisticio con mucho esfuerzo diplomático. */
+export const pacifista: Estrategia = (s) => {
+  const d = equilibrada(s);
+  d.respuestaCrisis = s.crisis ? 'negociar' : null;
+  if (s.guerra) {
+    const frentes = frentesDisponibles(s.paisId, s.guerra.contra);
+    const esfuerzo = { aire: 0, mar: 0, frontera: 0, economia: 20, diplomacia: 40 };
+    for (const f of frentes) esfuerzo[f] = 40 / frentes.length;
+    d.guerra = { ...sinGuerra(), esfuerzo, armisticio: true };
+  }
+  return d;
+};
+
+export const ESTRATEGIAS: Record<string, Estrategia> = {
+  equilibrada,
+  populista,
+  austeridad,
+  nada,
+  aislacionista,
+  integracionista,
+  belicista,
+  pacifista,
+};

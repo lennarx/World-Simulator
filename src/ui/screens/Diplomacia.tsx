@@ -13,6 +13,8 @@ import {
   type TipoTratado,
 } from '../../engine';
 import { Bar } from '../components/Bar';
+import { DeclararGuerraDialog } from '../components/DeclararGuerraDialog';
+import { GuerraCard } from '../components/GuerraCard';
 import { fmt } from '../format';
 import { useGame } from '../store';
 
@@ -47,6 +49,8 @@ export function Diplomacia() {
   const setDraft = useGame((s) => s.setDraft);
   const paises = otrosPaises(game.paisId);
   const [tipoTratado, setTipoTratado] = useState<TipoTratado>('comercio');
+  const [dialogoGuerra, setDialogoGuerra] = useState<string | null>(null);
+  const declaracion = draft.guerra.declarar;
   const max = CFG.diplomacia.accionesPorTurno;
   const usadas = draft.diplomacia.length;
 
@@ -61,6 +65,18 @@ export function Diplomacia() {
 
   return (
     <main className="stack">
+      <GuerraCard />
+      {declaracion && (
+        <section className="card stack" style={{ borderColor: 'var(--color-bad)' }} aria-live="polite">
+          <p>
+            <strong className="bad">Declaración de guerra a {nombrePais(declaracion)} incluida en este trimestre.</strong> Se votará en el Congreso al cerrar el
+            trimestre ({draft.guerra.siRechaza === 'avanzar' ? 'si la rechaza, se avanza por decreto' : 'si la rechaza, se desiste'}).
+          </p>
+          <button type="button" onClick={() => setDraft({ guerra: { ...draft.guerra, declarar: null } })}>
+            Retirar la declaración
+          </button>
+        </section>
+      )}
       {crisis && (
         <section className="card stack" style={{ borderColor: 'var(--color-bad)' }} aria-labelledby="crisis-titulo">
           <h2 id="crisis-titulo" className="bad">
@@ -190,15 +206,26 @@ export function Diplomacia() {
                   disabled={!firma.ok}
                   title={firma.ok ? `Proponer ${NOMBRE_TRATADO[tipoTratado]}` : firma.motivo}
                   aria-label={firma.ok ? `Proponer tratado de ${NOMBRE_TRATADO[tipoTratado]} con ${nombrePais(id)}` : `No se puede proponer: ${firma.motivo}`}
-                  onClick={() => setDraft({ tratado: { tipo: tipoTratado, con: id }, ley: null })}
+                  onClick={() => setDraft({ tratado: { tipo: tipoTratado, con: id }, ley: null, guerra: { ...draft.guerra, declarar: null } })}
                 >
                   Proponer
+                </button>
+                <button
+                  type="button"
+                  disabled={!!game.guerra || !!declaracion}
+                  onClick={() => setDialogoGuerra(id)}
+                  aria-label={`Declarar la guerra a ${nombrePais(id)}…`}
+                  title={game.guerra ? 'Ya hay un conflicto en curso.' : undefined}
+                  style={{ color: 'var(--color-bad)' }}
+                >
+                  Declarar guerra…
                 </button>
               </div>
             </article>
           );
         })}
       </section>
+      <DeclararGuerraDialog contra={dialogoGuerra} onClose={() => setDialogoGuerra(null)} />
     </main>
   );
 }
