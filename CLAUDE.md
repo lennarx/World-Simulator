@@ -399,6 +399,9 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
       (−0,4→−0,2/turno; −1→−0,5 al declarar), victoria con reparaciones y más legado (6→16 × gloria). Estrategia
       `belicista` reescrita (vecino más débil, armisticio al ir ganando, consolida entre guerras).
 - [x] Fix: no nacen crisis de frontera nuevas durante una guerra (antes salía "crisis con Paraguay" en plena guerra con Paraguay).
+- [x] Fix (demo en Chrome real): barcos siempre mar afuera (se empujan desde la línea del frente, no desde el centro del
+      país: en Argentina quedaban sobre tierra) y `<meta name="darkreader-lock">` en `index.html` (la extensión Dark
+      Reader reescribía los colores del mapa: tierra clara y etiquetas ilegibles).
 - [x] Tests: 85 (nuevos: `tests/mapa.test.ts`, `tests/engine/region.test.ts`, `tests/engine/territory.test.ts`,
       migración v3→v4, crisis en guerra). Sim: columna `terr` (territorio neto al final).
 
@@ -406,6 +409,8 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
 Enter abre la ficha, toque en Uruguay selecciona, "Visita" y "Devolver territorio" desde la ficha suman la acción,
 crisis/guerra/territorio marcados, franja que crece al cerrar el trimestre, unidades visibles en ambos temas, Panel
 solo con franjas, `prefers-reduced-motion` sin animaciones, sin scroll horizontal ni errores de consola.
+Demo completa en Chrome (con extensiones) AR vs CL: declaración, movilización, combate, derrota y franja ocupada
+permanente con "Reclamar territorio" en la ficha.
 
 **Balance Fase 4 (400 partidas, semillas 1000–1399; terr = territorio neto al final, + ganado / − perdido):**
 ```
@@ -565,7 +570,8 @@ Ver "Estado del proyecto". El próximo paso concreto está anotado al final de e
 
 **Próximo paso**: esperar OK del arquitecto. Si llega: Fase 5 (ciclo político: partida continua + elecciones),
 sección 6, dejando el gancho para la Fase 6 (no entregar el poder al perder). Pendientes de decisión: ¿Brasil-belicista
-79% es aceptable? Brasil-austeridad sigue en ~0% y "mandato gris" sigue siendo el final más común (con partida
+79% es aceptable? ¿Franja plena más chica o proporcional al país? (`FRANJA_MAX` = 44 en `mapa.ts`: contra Chile la
+frontera es toda la cordillera y Argentina queda casi reducida al este). Brasil-austeridad sigue en ~0% y "mandato gris" sigue siendo el final más común (con partida
 continua el "gris" cambia de sentido: conviene recalibrar ahí).
 
 ---
@@ -618,6 +624,7 @@ continua el "gris" cambia de sentido: conviene recalibrar ahí).
   devolver y reclamar. Solo entre vecinos por ahora.
 - La gloria de una victoria escala con el rival (`CFG.guerra.gloria`): sin eso, Brasil-belicista llegaba a 83%.
 - Unidades del mapa: propias en color de texto (contrastan sobre la franja de tu país), enemigas en rojo.
+- `darkreader-lock`: el juego ya tiene tema oscuro propio; extensiones que recolorean rompen el mapa (color-mix, tramas).
 - Animaciones de unidades con SMIL (`animateMotion`/`animateTransform`): simples y sin JS por frame; como el CSS de
   `prefers-reduced-motion` no las frena, el componente no las renderiza en ese caso.
 
