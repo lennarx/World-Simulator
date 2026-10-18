@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CFG } from '../../data/config';
 import {
+  balanceTerritorial,
   esVecino,
   nombrePais,
   otrosPaises,
@@ -176,7 +177,13 @@ export function Diplomacia() {
               <div className="row spread">
                 <strong>
                   {nombrePais(id)} {esVecino(game.paisId, id) && <span className="chip">VECINO</span>}{' '}
-                  {crisis?.con === id && <span className="chip" style={{ color: 'var(--color-bad)', borderColor: 'var(--color-bad)' }}>CRISIS</span>}
+                  {crisis?.con === id && <span className="chip" style={{ color: 'var(--color-bad)', borderColor: 'var(--color-bad)' }}>CRISIS</span>}{' '}
+                  {balanceTerritorial(game, id) > 0 && <span className="chip">OCUPÁS {fmt(balanceTerritorial(game, id) * 100, 0)}%</span>}
+                  {balanceTerritorial(game, id) < 0 && (
+                    <span className="chip" style={{ color: 'var(--color-bad)', borderColor: 'var(--color-bad)' }}>
+                      TE OCUPA {fmt(-balanceTerritorial(game, id) * 100, 0)}%
+                    </span>
+                  )}
                 </strong>
                 <span className={rel >= 0 ? 'good' : 'bad'}>{fmt(rel, 0)}</span>
               </div>
@@ -235,6 +242,8 @@ function FichaPais({ id, tipoTratado, onDeclararGuerra, onVerEnLista }: FichaPro
         <li>Tratados: {sit.tratados.length ? sit.tratados.map((t) => NOMBRE_TRATADO[t]).join(', ') : 'ninguno'}</li>
         <li>Capacidad militar: {fmt(sit.capacidad, 0)}/100 (la tuya: {fmt(game.ind.capacidadMilitar, 0)})</li>
         <li>Peso comercial: {fmt(sit.pesoComercial * 100, 0)}/100</li>
+        {sit.territorio > 0 && <li className="good">Administrás {fmt(sit.territorio * 100, 0)}% de la franja fronteriza de {nombrePais(id)}.</li>}
+        {sit.territorio < 0 && <li className="bad">{nombrePais(id)} ocupa {fmt(-sit.territorio * 100, 0)}% de la franja fronteriza propia.</li>}
       </ul>
       <AccionesPais id={id} tipoTratado={tipoTratado} onDeclararGuerra={onDeclararGuerra} />
       <button type="button" className="ghost small" onClick={() => onVerEnLista(id)}>

@@ -80,6 +80,14 @@ export interface EstadoGuerra {
   ultimosFrentes: Partial<Record<FrenteMilitar, 'ganado' | 'perdido'>>;
 }
 
+/** Franja junto a la frontera común que `ocupante` le quitó a `de` (conquista permanente). */
+export interface Territorio {
+  ocupante: string;
+  de: string;
+  profundidad: number; // 0..1 (fracción de la franja máxima)
+  desde: number; // turno
+}
+
 export interface ResultadoGuerra {
   contra: string;
   desde: number;
@@ -157,7 +165,8 @@ export interface Final {
 }
 
 // ---------------------------------------------------------------- Diplomacia (Fase 2)
-export type TipoAccion = 'visita' | 'cooperacion' | 'protesta' | 'gesto';
+/** `devolver` / `reclamar`: territorio ocupado (ver Territorio). */
+export type TipoAccion = 'visita' | 'cooperacion' | 'protesta' | 'gesto' | 'devolver' | 'reclamar';
 export type TipoTratado = 'comercio' | 'defensa' | 'integracion';
 export type RespuestaCrisis = 'negociar' | 'escalar' | 'ignorar';
 
@@ -250,6 +259,7 @@ export interface GameState {
   guerra?: EstadoGuerra;
   guerrasPasadas: ResultadoGuerra[];
   sanciones: Sancion[];
+  territorios: Territorio[];
 }
 
 export interface ResultadoTurno {

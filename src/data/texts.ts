@@ -82,4 +82,20 @@ export const LINEAS_GUERRA = {
   finSanciones: 'Se levantan las sanciones comerciales.',
 } as const;
 
-export const NOMBRE_FRENTE = { aire: 'aéreo', mar: 'naval', frontera: 'terrestre' } as const;
+/** Territorio ocupado. Tono sobrio en lo militar; algo de ironía solo en lo diplomático. */
+export const LINEAS_TERRITORIO = {
+  ganado: (pais: string, pct: number) =>
+    `Las fuerzas propias quedan a cargo de una franja junto a la frontera con ${pais} (${pct}% de la zona en disputa). Comienza una administración militar.`,
+  perdido: (pais: string, pct: number) =>
+    `${pais} retiene una franja del territorio nacional junto a la frontera (${pct}% de la zona en disputa). Miles de familias quedan del otro lado de la nueva línea.`,
+  revancha: (pais: string) => `${pais} reclama el territorio bajo administración propia. Hay movimientos de tropas sobre la nueva línea.`,
+  devuelto: (pais: string) =>
+    `Se devuelve a ${pais} el territorio administrado. La región aplaude; una parte del país habla de "entrega" y la otra, de sensatez.`,
+  nadaQueDevolver: (pais: string) => `No hay territorio de ${pais} para devolver.`,
+  nadaQueReclamar: (pais: string) => `${pais} no ocupa territorio propio: no hay nada que reclamar.`,
+  reclamoSinRelacion: (pais: string) => `${pais} ni siquiera recibe el reclamo territorial: con esta relación, no hay mesa de negociación.`,
+  reclamoExitoso: (pais: string) => `${pais} acepta devolver el territorio ocupado. Las familias de la zona vuelven a estar del lado propio de la frontera.`,
+  reclamoRechazado: (pais: string) => `${pais} rechaza el reclamo territorial. La cancillería promete insistir.`,
+} as const;
+
+export const NOMBRE_FRENTE ={ aire: 'aéreo', mar: 'naval', frontera: 'terrestre' } as const;

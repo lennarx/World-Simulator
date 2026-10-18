@@ -13,7 +13,7 @@ const D = CFG.diplomacia;
 const GEO = geografia.paises as Record<string, { vecinos: string[]; pesoComercial: number }>;
 const PARES = relationsJson.pares as { a: string; b: string; valor: number }[];
 
-export const TIPOS_ACCION = ['visita', 'cooperacion', 'protesta', 'gesto'] as const;
+export const TIPOS_ACCION = ['visita', 'cooperacion', 'protesta', 'gesto', 'devolver', 'reclamar'] as const;
 export const TIPOS_TRATADO = ['comercio', 'defensa', 'integracion'] as const;
 
 // ---------------------------------------------------------------- Datos
@@ -74,6 +74,7 @@ export function sanitizarDiplomacia(s: GameState, d: Decisiones): Pick<Decisione
 
 // ---------------------------------------------------------------- Acciones
 
+/** `devolver` y `reclamar` (territorio) los resuelve territory.aplicarAccionesTerritoriales. */
 export function aplicarAcciones(s: GameState, acciones: AccionDiplomatica[], report: EntradaParte[]): void {
   const A = D.acciones;
   for (const a of acciones) {
@@ -234,6 +235,8 @@ export function stepCrisis(s: GameState, respuesta: Decisiones['respuestaCrisis'
     return;
   }
 
+  // Durante una guerra no nacen crisis nuevas: la tensión ya está (y el peor vecino suele ser el enemigo).
+  if (s.guerra) return;
   const v = peorVecino(s);
   if (!v) return;
   const rel = s.relaciones[v]!;

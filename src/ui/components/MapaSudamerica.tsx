@@ -7,6 +7,7 @@ import { nombrePais, situacionPais, type GameState, type SituacionPais } from '.
 import { fmt } from '../format';
 import { useGame } from '../store';
 import { NOMBRE_TRATADO } from './AccionesPais';
+import { CapaGuerra, CapaTerritorios } from './MapaGuerra';
 
 const { ancho: W, alto: H } = MAPA_VIEWBOX;
 
@@ -25,6 +26,8 @@ export function describirPais(sit: SituacionPais): string {
   if (sit.guerra) partes.push('en guerra');
   if (sit.crisis) partes.push(`crisis de frontera nivel ${sit.crisis}`);
   if (sit.tratados.length) partes.push(`${sit.tratados.length} tratado/s`);
+  if (sit.territorio > 0) partes.push(`administrás ${fmt(sit.territorio * 100, 0)}% de su franja fronteriza`);
+  if (sit.territorio < 0) partes.push(`ocupa ${fmt(-sit.territorio * 100, 0)}% de tu franja fronteriza`);
   return partes.join(', ');
 }
 
@@ -92,6 +95,9 @@ export function MapaSudamerica({ game, seleccionado = null, onSeleccionar, compa
         <pattern id="mapa-rayado-guerra" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
           <line x1="0" y1="0" x2="0" y2="6" stroke="var(--color-bad)" strokeWidth="3" />
         </pattern>
+        <pattern id="mapa-rayado-ocupado" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="white" strokeWidth="1.6" />
+        </pattern>
         <pattern id="mapa-rayado-disputa" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <rect width="5" height="5" style={{ fill: 'var(--color-map-other)' }} />
           <line x1="0" y1="0" x2="0" y2="5" style={{ stroke: 'var(--color-map-line)' }} strokeWidth="1.6" />
@@ -146,6 +152,9 @@ export function MapaSudamerica({ game, seleccionado = null, onSeleccionar, compa
           );
         })}
       </g>
+
+      <CapaTerritorios game={game} />
+      <CapaGuerra game={game} compacto={compacto} />
 
       {/* Resaltado (hover/foco) y seleccionado, redibujados arriba para que no los tapen los vecinos. */}
       {resaltado && resaltado !== seleccionado && <path d={MAPA_PAISES[resaltado]!.d} className="mapa-resaltado" aria-hidden="true" />}
@@ -215,6 +224,10 @@ function Cartel({ sit, delta }: { sit: SituacionPais; delta: number }) {
   const [lx, ly] = MAPA_PAISES[sit.id]!.etiqueta;
   const estado = sit.guerra
     ? 'En guerra'
+    : sit.territorio > 0
+      ? `Administrás ${fmt(sit.territorio * 100, 0)}% de su franja`
+      : sit.territorio < 0
+        ? `Ocupa ${fmt(-sit.territorio * 100, 0)}% de tu franja`
     : sit.crisis
       ? `Crisis de frontera ${sit.crisis}/3`
       : sit.tratados.length
@@ -271,6 +284,9 @@ export function LeyendaMapa() {
       </li>
       <li>
         <span className="muestra linea tension" /> Tensión
+      </li>
+      <li>
+        <span className="muestra rayada ocupado" /> Territorio ocupado / línea del frente
       </li>
     </ul>
   );

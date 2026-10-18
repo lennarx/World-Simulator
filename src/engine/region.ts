@@ -1,6 +1,7 @@
 // Situación de cada país de la región vista desde el jugador (Fase 4: mapa).
 // Solo lectura: junta en un lugar lo que la UI necesita para pintar y describir un país.
 import { esVecino, pesoComercial } from './diplomacy';
+import { balanceTerritorial } from './territory';
 import type { GameState, TipoTratado } from './types';
 import { capacidadPais } from './war';
 
@@ -17,6 +18,8 @@ export interface SituacionPais {
   /** Capacidad militar ilustrativa (la propia sale de los indicadores). */
   capacidad: number;
   pesoComercial: number;
+  /** Territorio neto: + lo que le ocupás, − lo que te ocupa (0..1 de la franja). */
+  territorio: number;
 }
 
 export function situacionPais(s: GameState, id: string): SituacionPais {
@@ -31,5 +34,6 @@ export function situacionPais(s: GameState, id: string): SituacionPais {
     guerra: s.guerra?.contra === id,
     capacidad: esJugador ? s.ind.capacidadMilitar : capacidadPais(id),
     pesoComercial: pesoComercial(id),
+    territorio: esJugador ? 0 : balanceTerritorial(s, id),
   };
 }

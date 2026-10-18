@@ -1,7 +1,7 @@
 // Diálogo de declaración de guerra. <dialog> nativo: foco atrapado y Escape para cerrar.
 import { useEffect, useRef, useState } from 'react';
 import { CFG } from '../../data/config';
-import { capacidadPais, frentesDisponibles, nombrePais, votosAutorizacion } from '../../engine';
+import { capacidadPais, esVecino, frentesDisponibles, nombrePais, votosAutorizacion } from '../../engine';
 import { fmt } from '../format';
 import { useGame } from '../store';
 
@@ -44,6 +44,11 @@ export function DeclararGuerraDialog({ contra, onClose }: { contra: string | nul
           <li>Cada trimestre: menos crecimiento, reservas y estabilidad; costo humano creciente; la aprobación inicial se desgasta.</li>
           <li>
             Frentes posibles: {frentes.map((f) => NOMBRE_FRENTE[f]).join(', ')}. Fuerzas propias {fmt(game.ind.capacidadMilitar, 0)} vs. {fmt(capacidadPais(contra), 0)}.
+          </li>
+          <li>
+            {esVecino(game.paisId, contra)
+              ? `Territorio en juego: si ganás, te quedás con una franja junto a la frontera (rinde crecimiento, recaudación y reservas, pero cuesta resistencia, guarnición y aislamiento). Si perdés, la franja la pierde tu país.`
+              : `Sin frontera común: no se disputa territorio.`}
           </li>
           <li>Una derrota multiplica el riesgo de quiebre institucional.</li>
         </ul>

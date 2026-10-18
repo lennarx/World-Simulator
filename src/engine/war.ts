@@ -6,6 +6,7 @@ import militarJson from '../data/militar.json';
 import { LINEAS_GUERRA, NOMBRE_FRENTE } from '../data/texts';
 import { votar, votosEsperados, type Votable } from './congress';
 import { esVecino, nombrePais, relacionPromedio, tieneTratado } from './diplomacy';
+import { legadoTerritorio, territorioPorGuerra } from './territory';
 import type { Rng } from './rng';
 import type {
   DecisionGuerra,
@@ -267,6 +268,7 @@ export function terminarGuerra(s: GameState, resultado: TipoResultadoGuerra, rep
   s.ind.aprobacion = clamp(s.ind.aprobacion + fx.aprobacion, 0, 100);
   s.ind.estabilidad = clamp(s.ind.estabilidad + fx.estabilidad, 0, 100);
   s.ind.gobernabilidad = clamp(s.ind.gobernabilidad + fx.gobernabilidad, 0, 100);
+  s.ind.reservas = Math.max(0, s.ind.reservas + fx.reservas);
   // La relación con el ex enemigo queda dañada por años.
   s.relacionesBase[g.contra] = G.relacionBasePosguerra;
   s.guerrasPasadas.push({
@@ -279,6 +281,7 @@ export function terminarGuerra(s: GameState, resultado: TipoResultadoGuerra, rep
     autorizada: g.autorizada,
   });
   report.push({ tag: 'GUERRA', texto: LINEAS_GUERRA.fin[resultado](nombrePais(g.contra)) });
+  territorioPorGuerra(s, g.contra, resultado, g.avance, report);
   s.guerra = undefined;
 }
 
@@ -312,12 +315,15 @@ export function legadoGuerra(s: GameState): { soberania: number; estabilidad: nu
   let soberania = 0;
   let costo = 0;
   for (const r of s.guerrasPasadas) {
-    soberania += L[r.resultado];
+    const gloria = clamp(capacidadPais(r.contra) / Math.max(1, s.inicial.capacidadMilitar), G.gloria.min, G.gloria.max);
+    soberania += r.resultado === 'victoria' ? L.victoria * gloria : L[r.resultado];
     costo += r.costoHumano;
   }
   if (s.guerra) {
     soberania += L.en_curso;
     costo += s.guerra.costoHumano;
   }
+  // Territorio que quedó (ganado o perdido) al momento de medir.
+  soberania += legadoTerritorio(s);
   return { soberania, estabilidad: -costo * L.porCostoHumano };
 }

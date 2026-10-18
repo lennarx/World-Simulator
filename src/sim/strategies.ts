@@ -3,7 +3,7 @@ import { CFG } from '../data/config';
 import { getLey } from '../engine/data';
 import { previewFiscal, interesesExigibles } from '../engine/budget';
 import { votosEsperados } from '../engine/congress';
-import { pesoComercial, peorVecino, puedeFirmar, tieneTratado, votosTratado } from '../engine/diplomacy';
+import { pesoComercial, peorVecino, puedeFirmar, tieneTratado, vecinosDe, votosTratado } from '../engine/diplomacy';
 import type { AccionDiplomatica, DecisionGuerra, Decisiones, GameState, Presupuesto, TipoTratado } from '../engine/types';
 import { capacidadPais, esfuerzoPorDefecto, frentesDisponibles } from '../engine/war';
 import { decisionesActuales } from '../engine/turn';
@@ -154,29 +154,43 @@ export const integracionista: Estrategia = (s) => {
 };
 
 /**
- * Belicista: economía equilibrada pero con defensa al doble; escala crisis y le declara la guerra al peor vecino
- * en cuanto su capacidad supera a la del rival (aunque el Congreso diga que no). Nunca pide armisticio.
+ * Belicista: economía equilibrada con más defensa. Elige al vecino más débil (sin tratados con él), escala crisis y
+ * declara aunque el Congreso diga que no. En guerra: casi todo al frente; si va ganando, pide armisticio para
+ * congelar la línea (territorio). Después de una guerra consolida unos turnos antes de buscar la siguiente.
  */
 export const belicista: Estrategia = (s) => {
   const d = equilibrada(s);
-  d.presupuesto.defensa = s.presupuestoBase.defensa * 2;
-  d.diplomacia = [];
-  d.respuestaCrisis = s.crisis ? 'escalar' : null;
+  d.presupuesto.defensa = Math.max(d.presupuesto.defensa, s.presupuestoBase.defensa * CFG_BELICISTA.defensa);
+  // Las crisis se negocian salvo contra quien se piensa atacar (ahí se escala: suma apoyo en el Congreso).
+  d.respuestaCrisis = s.crisis ? 'negociar' : null;
   if (s.guerra) {
-    const frentes = frentesDisponibles(s.paisId, s.guerra.contra);
-    const esfuerzo = { aire: 0, mar: 0, frontera: 0, economia: 10, diplomacia: 0 };
-    for (const f of frentes) esfuerzo[f] = 90 / frentes.length;
-    d.guerra = { ...sinGuerra(), esfuerzo };
+    const g = s.guerra;
+    const frentes = frentesDisponibles(s.paisId, g.contra);
+    const esfuerzo = { aire: 0, mar: 0, frontera: 0, economia: 20, diplomacia: 5 };
+    for (const f of frentes) esfuerzo[f] = 75 / frentes.length;
+    const asegurar = (g.avance >= CFG_BELICISTA.avanceArmisticio && g.turnos >= 2) || g.presion >= 75 || (g.avance < 0 && g.turnos >= 3);
+    d.guerra = { ...sinGuerra(), esfuerzo, armisticio: asegurar };
     return d;
   }
-  const objetivo = peorVecino(s);
-  if (objetivo && s.ind.capacidadMilitar > capacidadPais(objetivo)) {
-    d.guerra = { ...sinGuerra(), declarar: objetivo, siRechaza: 'avanzar' };
+  const ultima = s.guerrasPasadas.at(-1);
+  if (ultima && s.turno - ultima.hasta < CFG_BELICISTA.consolidar) return d;
+  const propia = s.ind.capacidadMilitar;
+  const objetivo = vecinosDe(s.paisId)
+    .filter((v) => v in s.relaciones && !s.tratados.some((t) => t.con === v))
+    .map((v) => ({ v, margen: propia - capacidadPais(v) }))
+    .filter((x) => x.margen >= CFG_BELICISTA.margen)
+    .sort((a, b) => b.margen - a.margen)[0];
+  if (objetivo && s.crisis?.con === objetivo.v) d.respuestaCrisis = 'escalar';
+  if (objetivo) {
+    d.guerra = { ...sinGuerra(), declarar: objetivo.v, siRechaza: 'avanzar' };
     d.ley = null;
     d.tratado = null;
   }
   return d;
 };
+
+/** Parámetros de la estrategia belicista (son del "jugador", no del balance: no van en CFG). */
+const CFG_BELICISTA = { defensa: 1.6, avanceArmisticio: 40, consolidar: 8, margen: 5 };
 
 /** Pacifista: equilibrada, negocia toda crisis y, si la atacan, pide armisticio con mucho esfuerzo diplomático. */
 export const pacifista: Estrategia = (s) => {

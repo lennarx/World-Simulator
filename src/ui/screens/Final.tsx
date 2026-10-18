@@ -103,6 +103,13 @@ export function Final() {
                 </li>
               ))}
               {game.guerra && <li>{nombrePais(game.guerra.contra)}: conflicto sin resolver al final del mandato.</li>}
+              {game.territorios.map((t) => (
+                <li key={`${t.ocupante}-${t.de}`} className={t.ocupante === game.paisId ? 'good' : 'bad'}>
+                  {t.ocupante === game.paisId
+                    ? `Territorio administrado: ${fmt(t.profundidad * 100, 0)}% de la franja fronteriza de ${nombrePais(t.de)}.`
+                    : `Territorio propio ocupado por ${nombrePais(t.ocupante)}: ${fmt(t.profundidad * 100, 0)}% de la franja.`}
+                </li>
+              ))}
             </ul>
           </div>
         )}

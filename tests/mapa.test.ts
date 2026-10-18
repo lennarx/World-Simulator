@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TODOS_LOS_PAISES } from '../src/data/countries';
-import { MAPA_OTROS, MAPA_PAISES, MAPA_VIEWBOX } from '../src/data/mapa';
+import { fronteraEntre, MAPA_OTROS, MAPA_PAISES, MAPA_VIEWBOX, puntosSobre } from '../src/data/mapa';
+import { esVecino } from '../src/engine/diplomacy';
 
 const coords = (d: string) => [...d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
 
@@ -38,5 +39,20 @@ describe('mapa esquemático', () => {
     expect(comparten('brasil', 'venezuela')).toBe(true);
     expect(comparten('uruguay', 'brasil')).toBe(true);
     expect(comparten('chile', 'venezuela')).toBe(false);
+  });
+
+  it('hay frontera dibujada exactamente entre los pares de vecinos (para la franja de ocupación)', () => {
+    const ids = Object.keys(MAPA_PAISES);
+    for (const a of ids)
+      for (const b of ids) {
+        if (a === b) continue;
+        expect(!!fronteraEntre(a, b), `${a}-${b}`).toBe(esVecino(a, b));
+      }
+  });
+
+  it('puntosSobre reparte puntos dentro de la línea', () => {
+    const pts = puntosSobre(fronteraEntre('argentina', 'chile')!, 5);
+    expect(pts).toHaveLength(5);
+    for (const [x, y] of pts) expect(Number.isFinite(x) && Number.isFinite(y)).toBe(true);
   });
 });

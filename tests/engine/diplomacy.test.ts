@@ -3,6 +3,7 @@ import { CFG } from '../../src/data/config';
 import { advanceTurn, bonusDiplomatico, otrosPaises, relacionesIniciales } from '../../src/engine';
 import { aplicarAcciones, esVecino, puedeFirmar, resolverTratado, sanitizarDiplomacia, stepCrisis, stepRelaciones } from '../../src/engine/diplomacy';
 import { createRng } from '../../src/engine/rng';
+import { iniciarGuerra } from '../../src/engine/war';
 import type { EntradaParte, GameState } from '../../src/engine/types';
 import { ESTRATEGIAS } from '../../src/sim/strategies';
 import { decisiones, nuevo } from '../helpers';
@@ -161,4 +162,16 @@ describe('integración con el turno', () => {
     };
     expect(jugar()).toEqual(jugar());
   });
+
+describe('crisis y guerra', () => {
+  it('no nace una crisis de frontera nueva mientras hay una guerra', () => {
+    for (let seed = 1; seed < 40; seed++) {
+      const s = nuevo('argentina', seed);
+      iniciarGuerra(s, 'paraguay', false, true, []);
+      s.relaciones.chile = -100;
+      stepCrisis(s, null, createRng(seed), []);
+      expect(s.crisis).toBeNull();
+    }
+  });
+});
 });

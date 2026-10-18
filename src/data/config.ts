@@ -234,14 +234,14 @@ export const CFG = {
       relacionTerceros: -8,
       relacionVecinosAtacado: -10,
       relacionSociosDefensa: -15, // a tus aliados no les gusta que agredas
-      reservas: -1,
+      reservas: -0.5,
       prima: 0.8,
       rallyAgresion: 8, // "efecto bandera" inicial (aprobación)
       rallyDefensa: 14,
     },
     frentes: {
-      escala: 10, // ancho del sigmoide de cada frente: más alto = más azar
-      avance: 7, // puntos de avance por frente ganado (−7 si se pierde)
+      escala: 8, // ancho del sigmoide de cada frente: más alto = más azar
+      avance: 9, // puntos de avance por frente ganado (−9 si se pierde)
       desgasteGanador: 1, // capacidad militar perdida por frente
       desgastePerdedor: 4,
       esfuerzoEnemigoMilitar: 80, // la IA enemiga pone esto en frentes, el resto en sostenerse
@@ -252,7 +252,7 @@ export const CFG = {
     moral: { inicial: 60, defensiva: 15, porFrente: 5, porTurno: -2 },
     porTurno: {
       crecimiento: -0.8,
-      reservas: -0.4,
+      reservas: -0.2,
       estabilidad: -2,
       aprobacion: -2.5, // desgaste: el rally se evapora
       costoHumano: 3,
@@ -264,10 +264,11 @@ export const CFG = {
     armisticio: { base: 0.2, porDiplomacia: 0.4, porPresion: 0.3, porAvance: 0.4 },
     umbralVictoria: 60, // |avance| para ganar o perder
     fin: {
-      victoria: { aprobacion: 6, estabilidad: 0, gobernabilidad: 4 },
-      armisticio: { aprobacion: 2, estabilidad: 2, gobernabilidad: 0 },
-      cese_impuesto: { aprobacion: -3, estabilidad: 0, gobernabilidad: -3 },
-      derrota: { aprobacion: -15, estabilidad: -10, gobernabilidad: -15 },
+      // reservas: reparaciones de guerra que paga el vencido (o que pagás vos si perdés).
+      victoria: { aprobacion: 10, estabilidad: 0, gobernabilidad: 6, reservas: 1.5 },
+      armisticio: { aprobacion: 2, estabilidad: 2, gobernabilidad: 0, reservas: 0 },
+      cese_impuesto: { aprobacion: -3, estabilidad: 0, gobernabilidad: -3, reservas: 0 },
+      derrota: { aprobacion: -15, estabilidad: -10, gobernabilidad: -15, reservas: -1 },
     },
     relacionBasePosguerra: -30, // la relación base con el ex enemigo queda dañada
     sanciones: { duracion: 6, reservas: -0.2, crecimiento: -0.3 },
@@ -275,7 +276,34 @@ export const CFG = {
     golpePorDerrota: 1.5, // multiplicador extra del riesgo de golpe tras una derrota reciente
     turnosEfectoDerrota: 6,
     juicioSinAutorizacion: 0.15, // prob. base de juicio político por guerra sin autorización
-    legado: { victoria: 6, armisticio: -2, cese_impuesto: -5, derrota: -20, en_curso: -8, porCostoHumano: 0.3 },
+    legado: { victoria: 16, armisticio: 0, cese_impuesto: -5, derrota: -20, en_curso: -6, porCostoHumano: 0.2 },
+    // La gloria de una victoria escala con la capacidad del rival vs. la propia inicial (ganarle a uno muy chico vale poco).
+    gloria: { min: 0.3, max: 1.2 },
+    // Territorio (conquista permanente). Solo entre vecinos: sin frente terrestre no se ocupa suelo.
+    // "Profundidad" 0..1 = fracción de la franja máxima junto a la frontera común.
+    ocupacion: {
+      // Beneficios por territorio que administrás (× profundidad). Conquistar PUEDE valer la pena.
+      crecimiento: 0.4, // pp de crecimiento objetivo...
+      crecPorPeso: 0.8, // ...+ esto × pesoComercial del país ocupado (más rico, más rinde)
+      recaudacion: 0.8, // pp PBI de recaudación extra (recursos, aduanas)
+      reservas: 0.15, // meses por turno
+      soberaniaLegado: 10, // puntos de soberanía en el legado por territorio pleno
+      // Costos de retenerlo
+      resistencia: 1.2, // estabilidad por turno × profundidad; decae con el asentamiento...
+      resistenciaMin: 0.3, // ...hasta esta fracción (nunca desaparece del todo)
+      turnosAsentamiento: 16,
+      pisoDefensa: 0.35, // piso de defensa = base × (1 + esto × profundidad): hay que guarnecerlo
+      relacionBaseOcupado: -60, // la relación con el ocupado no levanta mientras lo ocupes
+      relacionRegion: -0.4, // por turno a terceros × profundidad (a los vecinos del ocupado, el doble)
+      probRevancha: 0.06, // por turno × profundidad: el ocupado abre una crisis de frontera (nivel 2)
+      // Territorio propio en manos ajenas
+      perdidoAprobacion: -0.8, // por turno × profundidad
+      perdidoCrecimiento: -0.3,
+      perdidoRecaudacion: -0.3,
+      perdidoLegado: -15, // soberanía
+    },
+    devolver: { relacion: 40, aprobacion: -5, region: 4 },
+    reclamar: { relacionMin: -20, probBase: 0.15, probPorRelacion: 0.004, relacionExito: 10, relacionFalla: -5 },
   },
 
   // ---------------------------------------------------------------- Legado

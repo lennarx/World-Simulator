@@ -1,6 +1,7 @@
 export * from './types';
 export { createGame, STATE_VERSION } from './init';
-export { advanceTurn, decisionesActuales } from './turn';
+export { advanceTurn, decisionesActuales, pisoDefensa } from './turn';
+export { balanceTerritorial, territorioDe, bonusTerritorial } from './territory';
 export { previewFiscal, interesesExigibles, sanitizarDecisiones } from './budget';
 export { votosEsperados, probVotoBloque } from './congress';
 export { LEYES, EVENTOS, getLey } from './data';

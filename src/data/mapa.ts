@@ -186,3 +186,64 @@ export const MAPA_OTROS: TerritorioExtra[] = [
     disputa: { nota: 'Soberanía en disputa. Administradas de facto por el Reino Unido.', etiqueta: proyectar([-59.5, -53.6]), abrev: 'MALVINAS' },
   },
 ];
+
+// ---------------------------------------------------------------- Fronteras compartidas (para guerra y territorio)
+
+/** Ids de los tramos de FRONTERA (`argentinaChile` → ['argentina', 'chile']). */
+const IDS_TRAMOS = [...Object.keys(MAPA_PAISES), 'guayanaFrancesa'];
+function paisesDelTramo(nombre: string): [string, string] | null {
+  for (const a of IDS_TRAMOS) {
+    if (!nombre.startsWith(a)) continue;
+    const resto = nombre.slice(a.length);
+    const b = resto.charAt(0).toLowerCase() + resto.slice(1);
+    if (IDS_TRAMOS.includes(b)) return [a, b];
+  }
+  return null;
+}
+
+/** Profundidad máxima de la franja ocupable, en unidades del viewBox (franja plena = territorio 1). */
+export const FRANJA_MAX = 44;
+
+/** Frontera común entre dos países ya proyectada (o null si no son vecinos en el mapa). */
+export function fronteraEntre(a: string, b: string): [number, number][] | null {
+  for (const [nombre, pts] of Object.entries(FRONTERA)) {
+    const par = paisesDelTramo(nombre);
+    if (par && ((par[0] === a && par[1] === b) || (par[0] === b && par[1] === a))) return pts.map(proyectar);
+  }
+  return null;
+}
+
+/** Puntos repartidos a lo largo de una polilínea (por longitud), útiles para ubicar unidades y destellos. */
+export function puntosSobre(linea: [number, number][], n: number): [number, number][] {
+  const tramos = linea.slice(1).map((p, i) => Math.hypot(p[0] - linea[i]![0], p[1] - linea[i]![1]));
+  const total = tramos.reduce((x, y) => x + y, 0);
+  const out: [number, number][] = [];
+  for (let k = 0; k < n; k++) {
+    let d = ((k + 0.5) / n) * total;
+    let i = 0;
+    while (i < tramos.length - 1 && d > tramos[i]!) d -= tramos[i++]!;
+    const [x1, y1] = linea[i]!;
+    const [x2, y2] = linea[i + 1]!;
+    const t = tramos[i]! ? d / tramos[i]! : 0;
+    out.push([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]);
+  }
+  return out;
+}
+
+export const polilinea = (pts: [number, number][]) => 'M' + pts.map((p) => p.join(',')).join('L');
+
+/** Costa de un país, proyectada (vacía si no tiene salida al mar). */
+export function costaDe(id: string): [number, number][] {
+  const tramos = id === 'colombia' ? ['colombiaCaribe', 'colombiaPacifico'] : [id];
+  return tramos.flatMap((t) => (COSTA[t] ?? []).map(proyectar));
+}
+
+/** Centro aproximado (promedio de vértices del contorno principal), para orientar unidades. */
+export function centroDe(id: string): [number, number] {
+  const f = MAPA_PAISES[id];
+  if (!f) return [MAPA_VIEWBOX.ancho / 2, MAPA_VIEWBOX.alto / 2];
+  const anilloPrincipal = f.d.split('Z')[0]!;
+  const pts = [...anilloPrincipal.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
+  const n = pts.length || 1;
+  return [pts.reduce((a, p) => a + p[0], 0) / n, pts.reduce((a, p) => a + p[1], 0) / n];
+}

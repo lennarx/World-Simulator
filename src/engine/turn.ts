@@ -9,6 +9,7 @@ import { checkEnding } from './endings';
 import { aplicarTemporales, rollEvents } from './events';
 import { stepPolitics } from './politics';
 import { stepPressure } from './pressure';
+import { aplicarAccionesTerritoriales, multPisoDefensa, stepTerritorios } from './territory';
 import { resolverDeclaracion, sanitizarGuerra, stepAtaqueEnemigo, stepGuerra, stepSanciones } from './war';
 import { createRng } from './rng';
 import type { Decisiones, EntradaParte, GameState, ResultadoTurno } from './types';
@@ -29,6 +30,9 @@ export function decisionesActuales(s: GameState): Decisiones {
   };
 }
 
+/** Piso de defensa (× base): guerra en curso y/o guarnición del territorio ocupado. */
+export const pisoDefensa = (s: GameState): number => Math.max(s.guerra ? CFG.guerra.multDefensaGuerra : 1, multPisoDefensa(s));
+
 export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): ResultadoTurno {
   if (prev.final) return { state: prev, report: [] };
   const s: GameState = structuredClone(prev);
@@ -41,8 +45,8 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
     d.ley = null;
     d.tratado = null;
   }
-  // En guerra, el gasto en defensa tiene piso (se aplica en el motor: no se confía en la UI).
-  if (s.guerra) d.presupuesto.defensa = Math.max(d.presupuesto.defensa, s.presupuestoBase.defensa * CFG.guerra.multDefensaGuerra);
+  // En guerra (o guarneciendo territorio ocupado) el gasto en defensa tiene piso (en el motor: no se confía en la UI).
+  d.presupuesto.defensa = Math.max(d.presupuesto.defensa, s.presupuestoBase.defensa * pisoDefensa(s));
   s.turno += 1;
 
   const antes = { ...prev.ind };
@@ -61,6 +65,7 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
 
   // 2b. Diplomacia: acciones del turno.
   aplicarAcciones(s, d.diplomacia, report);
+  aplicarAccionesTerritoriales(s, d.diplomacia, rng, report);
 
   // 3. Economía.
   stepEconomy(s, fiscal, rng);
@@ -77,6 +82,7 @@ export function advanceTurn(prev: GameState, decisionesCrudas: Decisiones): Resu
   stepAtaqueEnemigo(s, rng, report);
   stepGuerra(s, d.guerra, rng, report);
   stepSanciones(s, report);
+  stepTerritorios(s, rng, report);
 
   // 5. Política y sociedad.
   stepPolitics(s, rng);
