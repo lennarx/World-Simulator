@@ -3,6 +3,7 @@ import { getPais } from '../../data/countries';
 import { TITULOS_FINAL } from '../../data/texts';
 import { Bar } from '../components/Bar';
 import { IllustrativeBadge } from '../components/IllustrativeBadge';
+import { LeyendaMapa, MapaSudamerica } from '../components/MapaSudamerica';
 import { nombrePais, relacionPromedio, type TipoResultadoGuerra } from '../../engine';
 import { fmt, INDICADORES } from '../format';
 import { borrarLocal, exportarArchivo } from '../save';
@@ -109,6 +110,12 @@ export function Final() {
           <span>Bonus por reelección</span>
           <span>+{f.legado.bonusReeleccion}</span>
         </div>
+      </section>
+
+      <section className="card stack" aria-labelledby="region-final">
+        <h2 id="region-final">Cómo quedó la región</h2>
+        <MapaSudamerica game={game} compacto />
+        <LeyendaMapa />
       </section>
 
       <section className="card grid" aria-label="Evolución">

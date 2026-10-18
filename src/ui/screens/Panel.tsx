@@ -4,6 +4,7 @@ import { getLey, nombrePais, previewFiscal, probGolpe, probJuicio, type Indicado
 import { Bar } from '../components/Bar';
 import { GuerraCard } from '../components/GuerraCard';
 import { Indicator } from '../components/Indicator';
+import { MapaSudamerica } from '../components/MapaSudamerica';
 import { fmt } from '../format';
 import { useGame } from '../store';
 
@@ -99,6 +100,18 @@ export function Panel() {
           <button type="button" className="primary" onClick={cerrar}>
             Cerrar trimestre
           </button>
+        </div>
+      </section>
+      <section className="card stack" aria-labelledby="region-titulo">
+        <div className="row spread">
+          <h2 id="region-titulo">La región</h2>
+          <button type="button" onClick={() => irA('diplomacia')}>
+            Ver en Exterior
+          </button>
+        </div>
+        {/* Con mouse/tacto el mapa entero lleva a Exterior; con teclado, el botón de arriba. */}
+        <div onClick={() => irA('diplomacia')} style={{ cursor: 'pointer' }}>
+          <MapaSudamerica game={game} compacto />
         </div>
       </section>
     </main>

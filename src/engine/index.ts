@@ -19,6 +19,7 @@ export {
   bonusDiplomatico,
   TIPOS_TRATADO,
 } from './diplomacy';
+export { situacionPais, type SituacionPais } from './region';
 export {
   frentesDisponibles,
   normalizarEsfuerzo,

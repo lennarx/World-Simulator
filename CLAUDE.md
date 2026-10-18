@@ -58,7 +58,8 @@
 ```
 src/
   engine/   ← PURO. Sin React, sin DOM, sin localStorage, sin Math.random. Solo TS.
-  data/     ← config.ts (CFG: TODO el balance), countries/*.json, events.json, bills.json, texts.ts
+  data/     ← config.ts (CFG: TODO el balance), countries/*.json, events.json, bills.json, texts.ts,
+              mapa.ts (geometría esquemática del mapa: fronteras compartidas → path SVG por país)
   ui/       ← React + Zustand. Llama al motor, nunca al revés.
   sim/      ← scripts headless (tsx) que juegan cientos de partidas con estrategias fijas.
 tests/      ← Vitest (engine/*, save, sim smoke)
@@ -343,12 +344,30 @@ Lectura: la guerra NO conviene. Belicista gana 0–10% (vs 55–71% equilibrada)
 dura ~4 turnos. En Perú, la guerra sin autorización termina en juicio político (19%). Las guerras defensivas aparecen
 con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca la atacan.
 
-### Fase 4 — 12 países con IA (pendiente)
-### Fase 5 — Eventos regionales y puntaje final (pendiente)
+### Fase 4 — Mapa — ✅ HECHA (esperando OK del arquitecto para Fase 5)
+- [x] Datos: `src/data/mapa.ts` — mapa esquemático original low-poly de los 12 países (+ Guayana Francesa neutra, sin
+      interacción). Cada frontera se define una vez (lon/lat) y los países se arman encadenándolas (falla al cargar si
+      un tramo no continúa). Proyección equirectangular simple.
+- [x] Motor: `engine/region.ts` → `situacionPais(state, id)` (relación, vecino, tratados, crisis, guerra, capacidad,
+      peso comercial). Puro, solo lectura. Va en módulo propio para no crear un ciclo diplomacy ↔ war.
+- [x] UI: `MapaSudamerica` (color por relación con `color-mix`, rayado de crisis/guerra, puntos de tratado, contorno del
+      seleccionado, cada país es `role=button` con Tab/Enter/Espacio y `aria-label` descriptivo, área táctil para los
+      chicos) + `LeyendaMapa` (HTML). Pestaña Exterior: mapa + **ficha del país** con las mismas acciones que la lista
+      (`AccionesPais`, extraído de la tarjeta). Mapa compacto (solo lectura) en Panel y Final. Tokens `--color-map-*`.
+- [x] Tests: 69 (nuevos: `tests/mapa.test.ts`, `tests/engine/region.test.ts`). Sim sin cambios (no toca el motor).
+
+**Verificado (Chromium, 390×844 y 1280×900, temas claro y oscuro):** 12 países enfocables con nombre accesible,
+Enter abre la ficha, toque en Uruguay selecciona, "Visita" desde la ficha suma la acción, crisis y guerra marcadas,
+"Proponer" deshabilitado con motivo, sin scroll horizontal ni errores de consola.
+
+### Fase 5 — Ciclo político: partida continua + elecciones (pendiente)
+### Fase 6 — El mundo te habla: eventos con decisiones + iniciativas de otros países (pendiente)
+### Fase 7 — Más herramientas de gobierno (pendiente)
+### Fase 8 — 12 países con IA, eventos regionales, noticias cruzadas (pendiente)
 
 ---
 
-## 6. Roadmap detallado (Fases 2–5)
+## 6. Roadmap detallado
 
 ### Fase 2 — Diplomacia
 1. `state.relaciones: Record<paisId, number>` (-100..100) con todos los países (no solo vecinos; vecinos pesan más).
@@ -386,7 +405,33 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
 8. Gancho ya presente en Fase 1: `ind.capacidadMilitar` alimentada por el presupuesto de defensa.
    Agregar `state.guerra?: EstadoGuerra` (opcional ⇒ no rompe saves; subir `SAVE_VERSION` igual).
 
-### Fase 4 — Los 12 países con IA
+### Fase 4 — Mapa ✅ (ver checklist)
+
+> Desde acá el roadmap se reordenó (octubre 2026) después de jugar el MVP: el arquitecto quiere mecánicas estilo
+> "Yo Presidente" / "Iron Hearts". Decisiones: perder una elección presidencial = fin de partida; 1 reelección
+> consecutiva (otra solo con reforma constitucional); Supabase más adelante.
+
+### Fase 5 — Ciclo político: partida continua + elecciones
+1. Sacar el fin forzado en el turno 16 (`endings.ts`, `CFG.turnosMandato`); botón "Dejar el cargo" (retiro voluntario
+   ⇒ pantalla final con el legado acumulado).
+2. `state.mandato` (número, turno de inicio). Elección presidencial cada 16 turnos (reusar la lógica de reelección);
+   perderla = fin de partida. Límite: 1 reelección consecutiva; ley especial de reforma constitucional para otra.
+3. Medio término (turno 8 de cada mandato): recompone escaños de los bloques del Congreso según aprobación.
+4. Campaña: 1–2 turnos antes de cada elección, acciones de campaña (actos, promesas = gasto futuro, debates).
+5. Legado acumulado por mandato; presión con reseteo parcial al empezar un mandato ("luna de miel").
+6. Sim: jugar hasta perder o un tope de seguridad (~80 turnos); medir mandatos promedio. `SAVE_VERSION` 4 + migración.
+
+### Fase 6 — El mundo te habla
+1. Eventos con decisiones: `opciones: [{texto, efectos}]` en `events.json`; el turno queda pendiente hasta elegir
+   (en el sim, elige la estrategia). +30–40 eventos nuevos (buenos y malos) y cadenas (`requiere`/`flags`).
+2. Iniciativas de otros países (`engine/ai.ts`, liviano): según relación y postura (en el JSON del país) proponen
+   tratados, piden ayuda, protestan, ofrecen inversión, escalan crisis. Llegan como propuestas aceptar/rechazar/negociar.
+
+### Fase 7 — Más herramientas de gobierno
+Gabinete (ministros con atributos, renuncias), decretos, referéndum, acuerdo con el FMI, privatizar/estatizar,
+reformas de varios turnos, cadena nacional. Números en CFG, test por módulo.
+
+### Fase 8 — Los 12 países con IA + eventos regionales
 1. Completar los 12 JSON con perfiles distintos (Bolivia: gobernabilidad y protesta social; Chile: Congreso
    trabado pero macro sólida; Colombia: seguridad; Ecuador: dolarizado ⇒ sin emisión; Guyana: boom petrolero
    y tamaño chico; Paraguay: recaudación baja; Surinam: deuda; Uruguay: estable pero aprobación difícil de
@@ -396,10 +441,14 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
 3. Todos los países en el estado (`state.paises`), el jugador es uno más. Rendimiento: el sim debe seguir corriendo rápido.
 4. Sim: IA vs IA para detectar países que pierden desproporcionadamente (como en el prototipo, que encontró 3:1).
 
-### Fase 5 — Eventos regionales, noticias cruzadas, puntaje final
+**Eventos regionales, noticias cruzadas, puntaje final:**
 1. Eventos regionales (crisis de commodities regional, migraciones, cumbres) que afectan a varios países.
 2. "Noticias cruzadas": el parte incluye lo que pasa en otros países (etiqueta REGIÓN).
 3. Pantalla final con desglose completo y ranking regional.
+
+### Guardado (más adelante)
+Hoy: un slot en `localStorage` + export/import JSON. Próximo: varios slots locales. Supabase solo si hace falta
+multi-dispositivo o ranking: interfaz `SaveBackend` (local | supabase) en `save.ts`, auth y tabla `partidas` con RLS.
 
 ---
 
@@ -413,9 +462,9 @@ Ver "Estado del proyecto". El próximo paso concreto está anotado al final de e
 > CFG único, RNG con semilla, tests y `npm run sim` con 400 partidas por estrategia). Al terminar: tests,
 > sim, commit, actualizá el checklist de CLAUDE.md y resumí en ≤10 líneas. No arranques la fase siguiente sin OK.
 
-**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 4 (12 países con IA), sección 6. La IA de los otros
-países puede reutilizar `src/sim/strategies.ts` (posturas) y `war.iniciarGuerra(..., defensiva=true)` para atacar.
-Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia de "mandato gris".
+**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 5 (ciclo político: partida continua + elecciones),
+sección 6. Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia de "mandato gris"
+(con partida continua el "gris" cambia de sentido: conviene recalibrar ahí).
 
 ---
 
@@ -452,6 +501,11 @@ Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia 
   porque una guerra cambia la base con el ex enemigo.
 - Perder una guerra no termina la partida: hunde indicadores y multiplica el riesgo de golpe (decisión del arquitecto).
 - La guerra vive en la pestaña "Exterior" para no tener 6 pestañas en el celular.
+
+- Fase 4: el mapa es dibujo propio low-poly (sin trazado oficial ni islas en disputa); Guayana Francesa se dibuja
+  neutra porque no es uno de los 12. "Vecino" no se marca en el mapa (la geografía ya lo muestra; va en el aria-label).
+- El mapa es solo UI + datos: no cambia el motor ni el balance. `situacionPais` vive en `engine/region.ts`.
+- Roadmap reordenado tras jugar el MVP: Mapa → Ciclo político → Eventos/IA reactiva → Herramientas → IA completa.
 
 ### Pendiente / no verificado
 - Instalación de la PWA en un celular real (Android/iOS) — solo se puede verificar a mano.
