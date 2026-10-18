@@ -176,7 +176,8 @@ export function CapaGuerra({ game, compacto = false }: { game: GameState; compac
     if (costa.length) {
       const ref = puntosFrente[2] ?? centroDe(atacante === 'propio' ? yo : el);
       const masCerca = costa.reduce((m, p) => (Math.hypot(p[0] - ref[0], p[1] - ref[1]) < Math.hypot(m[0] - ref[0], m[1] - ref[1]) ? p : m));
-      const afuera = unit(resta(masCerca, centroDe(bloqueado)));
+      // Mar afuera = desde el frente hacia la costa y más allá (el centro del país no sirve: en países anchos queda cerca de la costa).
+      const afuera = unit(resta(masCerca, ref));
       const tang: P = [-afuera[1], afuera[0]];
       barcos = [-12, 12].map((k) => ({ pos: suma(suma(masCerca, afuera, 22), tang, k), tang, color: atacante === 'propio' ? colorPropio : colorEnemigo }));
     }
