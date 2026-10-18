@@ -2,6 +2,7 @@
 import { CFG } from '../../data/config';
 import {
   capacidadPropia,
+  esVecino,
   DESTINOS,
   esfuerzoPorDefecto,
   frentesDisponibles,
@@ -59,6 +60,11 @@ export function GuerraCard({ compacta = false }: { compacta?: boolean }) {
           <span>{g.avance >= 0 ? `+${fmt(g.avance, 0)}` : fmt(g.avance, 0)} (±{CFG.guerra.umbralVictoria} define)</span>
         </div>
         <Bar value={g.avance + 100} max={200} label="Situación en el terreno" color={g.avance >= 0 ? 'var(--color-good)' : 'var(--color-bad)'} />
+        <p className="small muted" style={{ margin: 0 }}>
+          {esVecino(game.paisId, g.contra)
+            ? `Territorio en juego. Con un armisticio hoy, la línea se congela en ${fmt(Math.min(100, (Math.abs(g.avance) / CFG.guerra.umbralVictoria) * 100), 0)}% de la franja ${g.avance >= 0 ? 'a tu favor' : 'en tu contra'}; la victoria da la franja plena.`
+            : 'Sin frontera común: no se disputa territorio.'}
+        </p>
         <div className="row spread small">
           <span>Presión internacional</span>
           <span>{fmt(g.presion, 0)}/100 (en 100 se impone el cese del fuego)</span>

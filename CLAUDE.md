@@ -18,7 +18,12 @@
   motor puro, CFG único, RNG con semilla, simulación headless de balance, eventos con condiciones,
   parte por turno con etiquetas, presión creciente que fuerza el final, pantalla final con desglose y
   mensaje irónico.
+- **Premisa de diseño (arquitecto, oct. 2026): "que pueda pasar y hacer de todo".** El juego NO está orientado al
+  pacifismo ni a ninguna ideología: la guerra, la conquista y (a futuro) quebrar las instituciones son caminos
+  **jugables con chances reales**, con costos y riesgos proporcionados. El sim lo vigila: ninguna estrategia debe
+  dominar, pero tampoco ser un suicidio garantizado (ver "Cómo tocar la guerra").
 - **Tono**: humor rioplatense leve. **Nunca** banalizar víctimas (ni en eventos, ni en guerra, ni en catástrofes).
+  Lo militar y lo represivo se narran en serio; en el mapa, siluetas abstractas y nada sobre población.
 - Dueño del proyecto: dev .NET/React/TS, hispanohablante rioplatense. UI, comentarios y commits en español.
 - Roles: el dueño hace de **arquitecto**; el agente implementa. No arrancar una fase nueva sin su OK explícito.
 
@@ -58,7 +63,8 @@
 ```
 src/
   engine/   ← PURO. Sin React, sin DOM, sin localStorage, sin Math.random. Solo TS.
-  data/     ← config.ts (CFG: TODO el balance), countries/*.json, events.json, bills.json, texts.ts
+  data/     ← config.ts (CFG: TODO el balance), countries/*.json, events.json, bills.json, texts.ts,
+              mapa.ts (geometría esquemática del mapa: fronteras compartidas → path SVG por país)
   ui/       ← React + Zustand. Llama al motor, nunca al revés.
   sim/      ← scripts headless (tsx) que juegan cientos de partidas con estrategias fijas.
 tests/      ← Vitest (engine/*, save, sim smoke)
@@ -155,6 +161,28 @@ decisiones (UI o estrategia del sim)
   Derrota reciente ⇒ ×`golpePorDerrota` en riesgo de golpe. Perder una guerra NO termina la partida por sí sola.
 - **Legado**: resultado ⇒ soberanía (`CFG.guerra.legado`), costo humano ⇒ estabilidad. `legado.guerra` es informativo.
 
+### Modelo (Fase 4 — Mapa y conquista)
+- **Mapa** (`src/data/mapa.ts` + `ui/components/MapaSudamerica.tsx`): geometría esquemática propia; cada frontera se
+  define una vez y se reutiliza (`fronteraEntre`, `puntosSobre`, `costaDe`, `centroDe` para la capa de guerra).
+  Malvinas como territorio en disputa (administradas de facto por el RU); Guayana Francesa neutra.
+- **Territorio** (`state.territorios: Territorio[]`, `engine/territory.ts`): franja junto a la frontera común
+  (`profundidad` 0..1). Solo entre **vecinos** (sin frente terrestre no se ocupa suelo). Al terminar una guerra
+  (`territorioPorGuerra`): victoria ⇒ franja plena; derrota ⇒ la perdés; **armisticio ⇒ se congela la línea**
+  (`avance / umbralVictoria`); cese impuesto ⇒ fronteras previas. Ganar primero recupera lo propio (`transferir`).
+- **Retenerlo rinde** (`bonusTerritorial`, consumido por `economy` y `budget.recaudacionEfectiva`): crecimiento
+  (más si el ocupado tiene peso comercial), recaudación, reservas y soberanía en el legado. **Cuesta**
+  (`stepTerritorios`): resistencia (estabilidad, decae con el asentamiento), piso de defensa por guarnición
+  (`multPisoDefensa`, combinado con el de guerra en `turn.pisoDefensa`), relación base con el ocupado fija en −60,
+  terceros te miran peor y **revancha** (el ocupado abre crisis de nivel 2). Si te ocupan: −aprobación por turno.
+- **Acciones** `devolver` (fin de la ocupación, +relación, −aprobación, la región celebra) y `reclamar` (requiere
+  relación mínima; prob. según relación). Las resuelve `aplicarAccionesTerritoriales` (no `aplicarAcciones`).
+- **Victoria militar**: reparaciones (+reservas) y la gloria en el legado escala con la capacidad del rival vs. la
+  propia inicial (`CFG.guerra.gloria`): ganarle a uno muy chico vale poco.
+- **Mapa en guerra** (`ui/components/MapaGuerra.tsx`): franja móvil según el avance (anima desde el trimestre anterior,
+  `guerraPrevia` en el store), tanques/aviones/barcos en siluetas según `ultimosFrentes`, destellos SOLO en la línea del
+  frente; territorio permanente rayado con la nueva línea de hecho. En el Panel, solo franjas. SMIL se apaga con
+  `prefers-reduced-motion` (lo detecta el componente; el CSS no alcanza a SMIL).
+
 ### Dificultad por país (difícil *de forma distinta*)
 | País | Problema principal | Cómo se modela |
 |---|---|---|
@@ -191,7 +219,7 @@ crisis, p. ej. relación baja con Venezuela); Argentina arranca tensa con Chile.
 1. Sumá el tipo en `TipoAccion` / `TipoTratado` (`engine/types.ts`) y en `TIPOS_ACCION` / `TIPOS_TRATADO` (`engine/diplomacy.ts`).
 2. Sus números en `CFG.diplomacia.acciones` / `CFG.diplomacia.tratados` (un tratado necesita `relacionMin` y `apoyo` por tipo de bloque).
 3. Efecto: acción en `aplicarAcciones`; tratado en `bonusDiplomatico` (si es económico) o en `resolverTratado` (si es one-shot).
-4. UI: listas `ACCIONES` / `NOMBRE_TRATADO` / `AYUDA_TRATADO` en `src/ui/screens/Diplomacia.tsx`.
+4. UI: `ACCIONES` / `NOMBRE_TRATADO` en `src/ui/components/AccionesPais.tsx`; `AYUDA_TRATADO` en `src/ui/screens/Diplomacia.tsx`.
 5. Tests en `tests/engine/diplomacy.test.ts` y `npm run sim`.
 
 ### Cómo tocar la guerra
@@ -199,7 +227,9 @@ crisis, p. ej. relación baja con Venezuela); Argentina arranca tensa con Chile.
 - Un frente nuevo: sumalo a `FrenteMilitar` (types), `FRENTES`/`DESTINOS` y `frentesDisponibles` (`war.ts`),
   `NOMBRE_FRENTE` (`texts.ts`) y `NOMBRE_DESTINO` (`ui/components/GuerraCard.tsx`).
 - Textos de guerra: siempre en `LINEAS_GUERRA`, tono serio. Sin humor sobre víctimas.
-- Después: `npm test && npm run sim` y verificar que `belicista` NO domine.
+- Territorio: números en `CFG.guerra.ocupacion` / `devolver` / `reclamar`; lógica en `engine/territory.ts`.
+- Después: `npm test && npm run sim`. **Objetivo de balance** (premisa "de todo"): `belicista` con chances
+  comparables a `equilibrada` (±15 pp de victoria), sin dominar claramente ni volver a ser un suicidio (0–10%).
 
 ### Cómo habilitar un país
 1. Completar su JSON en `src/data/countries/` (copiá la forma de `argentina.json`).
@@ -339,16 +369,90 @@ peru       integracionista   70%      43%   59.2  15.9    0    2%   0%  2.2    0
 peru       belicista          1%      33%   37.7  15.5    0  100%  98%  0.0  100%  47%  4.2  gris 48% · reel 33% · juicio 19%
 peru       pacifista         62%      42%   58.1  15.9    0    2%   0%  0.1    0%    -  0.0  reel 42% · gris 36% · cumpl 20% · juicio 2%
 ```
-Lectura: la guerra NO conviene. Belicista gana 0–10% (vs 55–71% equilibrada) aunque gane ~45–60% de sus guerras;
+Lectura (histórica, superada en Fase 4 por cambio de premisa): la guerra NO convenía. Belicista ganaba 0–10% (vs 55–71% equilibrada) aunque gane ~45–60% de sus guerras;
 dura ~4 turnos. En Perú, la guerra sin autorización termina en juicio político (19%). Las guerras defensivas aparecen
 con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca la atacan.
 
-### Fase 4 — 12 países con IA (pendiente)
-### Fase 5 — Eventos regionales y puntaje final (pendiente)
+### Fase 4 — Mapa + guerra en el mapa + conquista — ✅ HECHA (esperando OK del arquitecto para Fase 5)
+- [x] Datos: `src/data/mapa.ts` — mapa esquemático original low-poly de los 12 países (+ Guayana Francesa neutra, sin
+      interacción). Cada frontera se define una vez (lon/lat) y los países se arman encadenándolas (falla al cargar si
+      un tramo no continúa). Proyección equirectangular simple.
+- [x] Motor: `engine/region.ts` → `situacionPais(state, id)` (relación, vecino, tratados, crisis, guerra, capacidad,
+      peso comercial). Puro, solo lectura. Va en módulo propio para no crear un ciclo diplomacy ↔ war.
+- [x] UI: `MapaSudamerica` (color por relación con `color-mix`, rayado de crisis/guerra, puntos de tratado, contorno del
+      seleccionado, cada país es `role=button` con Tab/Enter/Espacio y `aria-label` descriptivo, área táctil para los
+      chicos) + `LeyendaMapa` (HTML). Pestaña Exterior: mapa + **ficha del país** con las mismas acciones que la lista
+      (`AccionesPais`, extraído de la tarjeta). Mapa compacto (solo lectura) en Panel y Final. Tokens `--color-map-*`.
+- [x] Malvinas: dibujadas como **territorio en disputa** (trama neutra, "administradas de facto por el Reino Unido"),
+      sin asignar a ningún país y agrandadas ×1,6 para que se vean. Gancho: guerra futura por las islas (sumar al RU como actor).
+- [x] Mapa vistoso: mar con degradé y cuadrícula, sombra de la tierra, entrada escalonada de países, transición de color
+      al cambiar la relación, resaltado + **cartel** al pasar/enfocar, selección con borde animado, **líneas** desde tu país
+      (tratados que fluyen, tensión de crisis/guerra), pulsos en crisis/guerra, "+5 / −8" del último trimestre
+      (`relacionesPrevias` en el store de UI, no se guarda). Todo CSS/SVG, sin librerías; `prefers-reduced-motion` lo apaga.
+- [x] **Conquista permanente** (`engine/territory.ts`, `state.territorios`, `STATE_VERSION`/`SAVE_VERSION` 4 con migración
+      v3→v4): victoria/derrota/armisticio cambian fronteras; beneficios y costos de ocupar; `devolver`/`reclamar`;
+      reparaciones de guerra; gloria escalada por rival. UI: diálogo de declaración y tarjeta del conflicto avisan qué
+      territorio está en juego; ficha, chips de la lista ("OCUPÁS 60%") y Final lo muestran; acciones territoriales
+      solo aparecen si corresponden.
+- [x] **Guerra en el mapa**: franja móvil, territorio permanente, tanques/aviones/barcos y destellos en el frente.
+- [x] **Rebalance pro-"de todo"**: guerra más decisiva (avance 7→9, sigmoide 10→8), menos drenaje de reservas
+      (−0,4→−0,2/turno; −1→−0,5 al declarar), victoria con reparaciones y más legado (6→16 × gloria). Estrategia
+      `belicista` reescrita (vecino más débil, armisticio al ir ganando, consolida entre guerras).
+- [x] Fix: no nacen crisis de frontera nuevas durante una guerra (antes salía "crisis con Paraguay" en plena guerra con Paraguay).
+- [x] Fix (demo en Chrome real): barcos siempre mar afuera (se empujan desde la línea del frente, no desde el centro del
+      país: en Argentina quedaban sobre tierra) y `<meta name="darkreader-lock">` en `index.html` (la extensión Dark
+      Reader reescribía los colores del mapa: tierra clara y etiquetas ilegibles).
+- [x] Tests: 85 (nuevos: `tests/mapa.test.ts`, `tests/engine/region.test.ts`, `tests/engine/territory.test.ts`,
+      migración v3→v4, crisis en guerra). Sim: columna `terr` (territorio neto al final).
+
+**Verificado (Chromium, 390×844 y 1280×900, temas claro y oscuro):** 12 países enfocables con nombre accesible,
+Enter abre la ficha, toque en Uruguay selecciona, "Visita" y "Devolver territorio" desde la ficha suman la acción,
+crisis/guerra/territorio marcados, franja que crece al cerrar el trimestre, unidades visibles en ambos temas, Panel
+solo con franjas, `prefers-reduced-motion` sin animaciones, sin scroll horizontal ni errores de consola.
+Demo completa en Chrome (con extensiones) AR vs CL: declaración, movilización, combate, derrota y franja ocupada
+permanente con "Reclamar territorio" en la ficha.
+
+**Balance Fase 4 (400 partidas, semillas 1000–1399; terr = territorio neto al final, + ganado / − perdido):**
+```
+país       estrategia       victoria reelec legado turnos NaN crisis niv3 trat guerra gMil durG  terr  finales
+argentina  equilibrada       55%      28%   57.0  16.0    0    0%   0%  5.0    0%    -  0.0  0.00  gris 46% · reel 28% · cumpl 27%
+argentina  populista          0%       0%   31.1  11.1    0   69%  56%  0.0   22%   1%  1.1  0.00  colap 86% · gris 13% · golpe 1% · juicio 0%
+argentina  austeridad        36%       0%   50.5  16.0    0    0%   0%  4.9    0%    -  0.0  0.00  gris 64% · cumpl 36% · juicio 0%
+argentina  nada               3%       1%   36.1  14.6    0   22%   0%  0.0    0%    -  0.0  0.00  gris 77% · colap 17% · cumpl 2% · juicio 2% · reel 1% · golpe 0%
+argentina  aislacionista     41%      23%   53.6  16.0    0   22%   0%  0.0    0%    -  0.0  0.00  gris 59% · reel 23% · cumpl 18%
+argentina  integracionista   40%      16%   50.4  16.0    0    0%   0% 11.2    0%    -  0.0  0.00  gris 60% · cumpl 24% · reel 16%
+argentina  belicista         44%      26%   52.8  16.0    0   57%   0%  0.1  100%  40%  3.1  0.89  gris 55% · reel 26% · cumpl 20%
+argentina  pacifista         55%      28%   57.0  16.0    0    0%   0%  5.0    0%    -  0.0  0.00  gris 46% · reel 28% · cumpl 27%
+brasil     equilibrada       71%      37%   59.1  16.0    0    0%   0%  8.1    0%    -  0.0  0.00  reel 37% · cumpl 34% · gris 29%
+brasil     populista          0%       0%   28.9  11.7    0   62%  49%  0.0   23%  29%  1.7  0.07  colap 100% · gris 1%
+brasil     austeridad         1%       0%   46.5  16.0    0    1%   0%  4.7    0%    -  0.0  0.00  gris 100% · cumpl 0% · reel 0%
+brasil     nada               0%       1%   28.7  16.0    0   66%   0%  0.0    0%    -  0.0  0.00  gris 100% · reel 1%
+brasil     aislacionista     48%      34%   55.8  16.0    0   67%   0%  0.0    0%    -  0.0  0.00  gris 52% · reel 34% · cumpl 14%
+brasil     integracionista   54%      26%   56.7  16.0    0    0%   0% 11.4    0%    -  0.0  0.00  gris 46% · cumpl 29% · reel 26%
+brasil     belicista         79%      53%   61.8  16.0    0   76%   0%  0.4  100%  82%  3.0  0.99  reel 53% · cumpl 26% · gris 21%
+brasil     pacifista         71%      37%   59.1  16.0    0    0%   0%  8.1    0%    -  0.0  0.00  reel 37% · cumpl 34% · gris 29%
+peru       equilibrada       62%      42%   58.1  15.9    0    2%   0%  0.1    0%    -  0.0  0.00  reel 42% · gris 36% · cumpl 20% · juicio 2%
+peru       populista         13%      30%   41.0  15.0    0   77%  69%  0.0   48%  40%  3.0  0.19  colap 35% · gris 33% · reel 30% · juicio 2%
+peru       austeridad         5%       4%   48.3  14.9    0    2%   0%  0.0    0%    -  0.0  0.00  gris 64% · juicio 31% · reel 4% · cumpl 2%
+peru       nada              12%      15%   47.2  15.0    0   71%   0%  0.0    0%    -  0.0  0.00  gris 61% · juicio 24% · reel 15% · cumpl 1%
+peru       aislacionista     53%      41%   56.2  16.0    0   75%   0%  0.0    0%    -  0.0  0.00  gris 45% · reel 41% · cumpl 13% · juicio 2%
+peru       integracionista   70%      43%   59.2  15.9    0    2%   0%  2.2    0%    -  0.0  0.00  reel 43% · gris 29% · cumpl 27% · juicio 2%
+peru       belicista         49%      45%   55.2  15.7    0   66%   0%  0.0  100%  42%  3.2  0.89  reel 45% · gris 38% · juicio 9% · cumpl 8%
+peru       pacifista         62%      42%   58.1  15.9    0    2%   0%  0.1    0%    -  0.0  0.00  reel 42% · gris 36% · cumpl 20% · juicio 2%
+```
+Lectura: la guerra ahora es **una vía real**. Belicista: AR 44% (vs 55% equilibrada), PE 49% (vs 62%), BR 79%
+(vs 71%: Brasil es la potencia regional y le rinde; vigilar). Gana 40–80% de sus guerras y termina con ~0,9 de franja.
+Pacifista sigue = equilibrada. **Punto a revisar por el arquitecto:** ¿Brasil-belicista 79% es aceptable o lo bajamos?
+
+### Fase 5 — Ciclo político: partida continua + elecciones (pendiente)
+### Fase 6 — Poder de facto: estado de sitio, autogolpe, dictadura (pendiente)
+### Fase 7 — El mundo te habla: eventos con decisiones + iniciativas de otros países (pendiente)
+### Fase 8 — Más herramientas de gobierno (pendiente)
+### Fase 9 — 12 países con IA, actores extrarregionales (Malvinas), eventos regionales (pendiente)
 
 ---
 
-## 6. Roadmap detallado (Fases 2–5)
+## 6. Roadmap detallado
 
 ### Fase 2 — Diplomacia
 1. `state.relaciones: Record<paisId, number>` (-100..100) con todos los países (no solo vecinos; vecinos pesan más).
@@ -386,7 +490,51 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
 8. Gancho ya presente en Fase 1: `ind.capacidadMilitar` alimentada por el presupuesto de defensa.
    Agregar `state.guerra?: EstadoGuerra` (opcional ⇒ no rompe saves; subir `SAVE_VERSION` igual).
 
-### Fase 4 — Los 12 países con IA
+### Fase 4 — Mapa + guerra en el mapa + conquista ✅ (ver checklist)
+
+> Desde acá el roadmap se reordenó (octubre 2026) después de jugar el MVP: el arquitecto quiere mecánicas estilo
+> "Yo Presidente" / "Iron Hearts". Decisiones: perder una elección presidencial = fin de partida; 1 reelección
+> consecutiva (otra solo con reforma constitucional); Supabase más adelante.
+
+### Fase 5 — Ciclo político: partida continua + elecciones
+1. Sacar el fin forzado en el turno 16 (`endings.ts`, `CFG.turnosMandato`); botón "Dejar el cargo" (retiro voluntario
+   ⇒ pantalla final con el legado acumulado).
+2. `state.mandato` (número, turno de inicio). Elección presidencial cada 16 turnos (reusar la lógica de reelección);
+   perderla = fin de partida. Límite: 1 reelección consecutiva; ley especial de reforma constitucional para otra.
+3. Medio término (turno 8 de cada mandato): recompone escaños de los bloques del Congreso según aprobación.
+4. Campaña: 1–2 turnos antes de cada elección, acciones de campaña (actos, promesas = gasto futuro, debates).
+5. Legado acumulado por mandato; presión con reseteo parcial al empezar un mandato ("luna de miel").
+6. Sim: jugar hasta perder o un tope de seguridad (~80 turnos); medir mandatos promedio. `SAVE_VERSION` 5 + migración.
+7. Dejar el gancho para la Fase 6: al perder la elección, el "fin de partida" pasa a ser una decisión (entregar o no el poder).
+
+### Fase 6 — Poder de facto: estado de sitio, autogolpe, "dictador" (pedido del arquitecto)
+Que se pueda **retener el poder por la fuerza**, por ejemplo al perder una elección. Es un camino jugable con chances
+reales (premisa "de todo"), no un final automático. Tono serio: la represión no se banaliza.
+1. **Estado de sitio** (decisión del turno, con o sin Congreso): suspende garantías N turnos. +estabilidad/seguridad
+   de corto plazo y −protesta; −aprobación, −relaciones, sanciones, presión internacional; la oposición se radicaliza.
+2. **Desconocer una elección perdida / autogolpe**: en vez de "fin de partida" al perder, opción "no entregar el poder".
+   Requiere apoyo de las FF.AA. (capacidad militar, defensa financiada, malestar militar bajo): si falla ⇒ golpe en
+   contra / caída. Si sale ⇒ **régimen de facto** (`state.regimen: 'democracia' | 'de_facto'`).
+3. **Régimen de facto**: Congreso disuelto o cooptado (las leyes salen por decreto), sin elecciones (o controladas, con
+   riesgo de fraude visible), censura (la aprobación "medida" sube pero la real cae), represión (estabilidad de corto
+   plazo, costo humano narrado con respeto), aislamiento: sanciones, tratados suspendidos, relaciones en caída.
+   Riesgos propios: **levantamiento popular**, **contragolpe**, **guerra civil** (reusar el motor de guerra con frentes
+   internos), presión internacional y fuga de capitales.
+4. **Salidas**: transición pactada (elecciones con garantías), exilio, caída. Legado con lectura propia (la historia
+   juzga "orden" vs "libertades").
+5. Sim: estrategia `autoritaria` (retiene el poder al perder); objetivo de balance como el resto: chances reales, sin dominar.
+
+### Fase 7 — El mundo te habla
+1. Eventos con decisiones: `opciones: [{texto, efectos}]` en `events.json`; el turno queda pendiente hasta elegir
+   (en el sim, elige la estrategia). +30–40 eventos nuevos (buenos y malos) y cadenas (`requiere`/`flags`).
+2. Iniciativas de otros países (`engine/ai.ts`, liviano): según relación y postura (en el JSON del país) proponen
+   tratados, piden ayuda, protestan, ofrecen inversión, escalan crisis. Llegan como propuestas aceptar/rechazar/negociar.
+
+### Fase 8 — Más herramientas de gobierno
+Gabinete (ministros con atributos, renuncias), decretos, referéndum, acuerdo con el FMI, privatizar/estatizar,
+reformas de varios turnos, cadena nacional. Números en CFG, test por módulo.
+
+### Fase 9 — Los 12 países con IA + actores extrarregionales + eventos regionales
 1. Completar los 12 JSON con perfiles distintos (Bolivia: gobernabilidad y protesta social; Chile: Congreso
    trabado pero macro sólida; Colombia: seguridad; Ecuador: dolarizado ⇒ sin emisión; Guyana: boom petrolero
    y tamaño chico; Paraguay: recaudación baja; Surinam: deuda; Uruguay: estable pero aprobación difícil de
@@ -395,11 +543,18 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
    soberanía, integración, populismo...) definida en el JSON.
 3. Todos los países en el estado (`state.paises`), el jugador es uno más. Rendimiento: el sim debe seguir corriendo rápido.
 4. Sim: IA vs IA para detectar países que pierden desproporcionadamente (como en el prototipo, que encontró 3:1).
+5. IA que también conquista y reclama territorio (`territory.transferir` ya es genérico entre dos países).
+6. **Actores extrarregionales** (p. ej. el Reino Unido por Malvinas): sin frontera terrestre ⇒ frentes aire/mar;
+   el territorio en disputa (`MAPA_OTROS` con `disputa`) cambia de color entero si se gana. Pedido del arquitecto.
 
-### Fase 5 — Eventos regionales, noticias cruzadas, puntaje final
+**Eventos regionales, noticias cruzadas, puntaje final:**
 1. Eventos regionales (crisis de commodities regional, migraciones, cumbres) que afectan a varios países.
 2. "Noticias cruzadas": el parte incluye lo que pasa en otros países (etiqueta REGIÓN).
 3. Pantalla final con desglose completo y ranking regional.
+
+### Guardado (más adelante)
+Hoy: un slot en `localStorage` + export/import JSON. Próximo: varios slots locales. Supabase solo si hace falta
+multi-dispositivo o ranking: interfaz `SaveBackend` (local | supabase) en `save.ts`, auth y tabla `partidas` con RLS.
 
 ---
 
@@ -413,9 +568,11 @@ Ver "Estado del proyecto". El próximo paso concreto está anotado al final de e
 > CFG único, RNG con semilla, tests y `npm run sim` con 400 partidas por estrategia). Al terminar: tests,
 > sim, commit, actualizá el checklist de CLAUDE.md y resumí en ≤10 líneas. No arranques la fase siguiente sin OK.
 
-**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 4 (12 países con IA), sección 6. La IA de los otros
-países puede reutilizar `src/sim/strategies.ts` (posturas) y `war.iniciarGuerra(..., defensiva=true)` para atacar.
-Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia de "mandato gris".
+**Próximo paso**: esperar OK del arquitecto. Si llega: Fase 5 (ciclo político: partida continua + elecciones),
+sección 6, dejando el gancho para la Fase 6 (no entregar el poder al perder). Pendientes de decisión: ¿Brasil-belicista
+79% es aceptable? ¿Franja plena más chica o proporcional al país? (`FRANJA_MAX` = 44 en `mapa.ts`: contra Chile la
+frontera es toda la cordillera y Argentina queda casi reducida al este). Brasil-austeridad sigue en ~0% y "mandato gris" sigue siendo el final más común (con partida
+continua el "gris" cambia de sentido: conviene recalibrar ahí).
 
 ---
 
@@ -452,6 +609,24 @@ Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la frecuencia 
   porque una guerra cambia la base con el ex enemigo.
 - Perder una guerra no termina la partida: hunde indicadores y multiplica el riesgo de golpe (decisión del arquitecto).
 - La guerra vive en la pestaña "Exterior" para no tener 6 pestañas en el celular.
+
+- Malvinas (pedido del arquitecto): en disputa, administradas de facto por el RU, trama neutra. A futuro se podrá
+  declarar la guerra al RU para recuperarlas (requiere un actor extrarregional). El Esequibo se dibuja como parte de
+  Guyana (frontera de facto) sin marcar el reclamo venezolano.
+- Fase 4: el mapa es dibujo propio low-poly (sin trazado oficial); Guayana Francesa se dibuja
+  neutra porque no es uno de los 12. "Vecino" no se marca en el mapa (la geografía ya lo muestra; va en el aria-label).
+- El mapa es solo UI + datos: no cambia el motor ni el balance. `situacionPais` vive en `engine/region.ts`.
+- Roadmap reordenado tras jugar el MVP: Mapa → Ciclo político → Poder de facto → Eventos/IA reactiva → Herramientas → IA completa.
+- **Cambio de premisa (arquitecto):** el juego no es pacifista; la guerra debe dar "una buena chance". Antes el objetivo
+  era que `belicista` NO conviniera (0–10%); ahora, chances comparables a `equilibrada`. Igual con lo que venga
+  (dictadura, etc.): todo jugable, nada dominante.
+- Conquista permanente (decisión del arquitecto): armisticio congela la línea; el territorio da "bastante"; se puede
+  devolver y reclamar. Solo entre vecinos por ahora.
+- La gloria de una victoria escala con el rival (`CFG.guerra.gloria`): sin eso, Brasil-belicista llegaba a 83%.
+- Unidades del mapa: propias en color de texto (contrastan sobre la franja de tu país), enemigas en rojo.
+- `darkreader-lock`: el juego ya tiene tema oscuro propio; extensiones que recolorean rompen el mapa (color-mix, tramas).
+- Animaciones de unidades con SMIL (`animateMotion`/`animateTransform`): simples y sin JS por frame; como el CSS de
+  `prefers-reduced-motion` no las frena, el componente no las renderiza en ese caso.
 
 ### Pendiente / no verificado
 - Instalación de la PWA en un celular real (Android/iOS) — solo se puede verificar a mano.

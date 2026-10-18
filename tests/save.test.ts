@@ -51,4 +51,16 @@ describe('guardado', () => {
     const roto = crearSave({ ...s, ind: { ...s.ind, inflacion: Number.NaN } }, null, []);
     expect(typeof validarSave(JSON.parse(JSON.stringify(roto)))).toBe('string');
   });
+
+  it('migra un save v3 (Fase 3) agregando territorios vacíos', () => {
+    const s = nuevo('peru', 8);
+    const v3: Record<string, unknown> = { ...s, version: 3 };
+    delete v3.territorios;
+    const v = validarSave({ app: 'simulador-gobierno-sa', version: 3, savedAt: '', state: v3, draft: decisionesActuales(s), partes: [] });
+    expect(typeof v).not.toBe('string');
+    if (typeof v === 'string') return;
+    expect(v.version).toBe(SAVE_VERSION);
+    expect(v.state.territorios).toEqual([]);
+    expect(() => advanceTurn(v.state, decisionesActuales(v.state))).not.toThrow();
+  });
 });

@@ -2,6 +2,7 @@
 import { CFG } from '../data/config';
 import type { ResultadoFiscal } from './budget';
 import { bonusDiplomatico } from './diplomacy';
+import { bonusTerritorial } from './territory';
 import type { Rng } from './rng';
 import type { GameState } from './types';
 import { approach, clamp } from './util';
@@ -39,6 +40,7 @@ export function deltaGastoPonderado(s: GameState, area: keyof GameState['presupu
 export function stepEconomy(s: GameState, f: ResultadoFiscal, rng: Rng): void {
   const ind = s.ind;
   const diplo = bonusDiplomatico(s);
+  const terr = bonusTerritorial(s);
 
   // Prima de riesgo: converge al objetivo de a poco (los mercados también tienen inercia).
   s.primaRiesgo = approach(s.primaRiesgo, primaObjetivo(s), CFG.prima.suavizado);
@@ -68,6 +70,7 @@ export function stepEconomy(s: GameState, f: ResultadoFiscal, rng: Rng): void {
     Math.max(0, ind.inflacion - E.umbralDragInflacion) * E.dragInflacion -
     s.primaRiesgo * E.dragPrima +
     diplo.crecimiento +
+    terr.crecimiento +
     rng.noise(E.ruidoCrecimiento);
   ind.crecimiento = clamp(approach(ind.crecimiento, crecObjetivo, E.suavizadoCrecimiento), E.crecimientoMin, E.crecimientoMax);
 
@@ -85,6 +88,7 @@ export function stepEconomy(s: GameState, f: ResultadoFiscal, rng: Rng): void {
     ind.reservas +
       E.reservasDeriva +
       diplo.reservas +
+      terr.reservas +
       Math.max(0, -f.deficit) * E.reservasPorSuperavit -
       f.emision * CFG.fiscal.emisionReservas -
       (s.atraso > 0 ? E.reservasPorAtraso : 0) -

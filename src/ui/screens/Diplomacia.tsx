@@ -1,35 +1,24 @@
 import { useState } from 'react';
 import { CFG } from '../../data/config';
 import {
+  balanceTerritorial,
   esVecino,
   nombrePais,
   otrosPaises,
-  puedeFirmar,
+  situacionPais,
   TIPOS_TRATADO,
   votosTratado,
-  type AccionDiplomatica,
   type RespuestaCrisis,
-  type TipoAccion,
   type TipoTratado,
 } from '../../engine';
+import { ACCIONES, AccionesPais, NOMBRE_TRATADO } from '../components/AccionesPais';
 import { Bar } from '../components/Bar';
 import { DeclararGuerraDialog } from '../components/DeclararGuerraDialog';
 import { GuerraCard } from '../components/GuerraCard';
+import { IllustrativeBadge } from '../components/IllustrativeBadge';
+import { LeyendaMapa, MapaSudamerica } from '../components/MapaSudamerica';
 import { fmt } from '../format';
 import { useGame } from '../store';
-
-const ACCIONES: { tipo: TipoAccion; label: string; ayuda: string }[] = [
-  { tipo: 'visita', label: 'Visita', ayuda: 'Mejora la relación (rinde menos si ya es buena).' },
-  { tipo: 'cooperacion', label: 'Cooperar', ayuda: 'Seguridad conjunta: relación y algo de estabilidad. Requiere relación ≥ 0.' },
-  { tipo: 'protesta', label: 'Protestar', ayuda: 'Baja la relación. En plena crisis con ese país, suma aprobación.' },
-  { tipo: 'gesto', label: 'Gesto', ayuda: 'Discurso duro: sube tu aprobación, baja la relación.' },
-];
-
-export const NOMBRE_TRATADO: Record<TipoTratado, string> = {
-  comercio: 'Comercio',
-  defensa: 'Defensa',
-  integracion: 'Integración',
-};
 
 const AYUDA_TRATADO: Record<TipoTratado, string> = {
   comercio: `Crecimiento y reservas según el peso comercial del socio (con techo). Relación mínima ${CFG.diplomacia.tratados.comercio.relacionMin}.`,
@@ -50,13 +39,15 @@ export function Diplomacia() {
   const paises = otrosPaises(game.paisId);
   const [tipoTratado, setTipoTratado] = useState<TipoTratado>('comercio');
   const [dialogoGuerra, setDialogoGuerra] = useState<string | null>(null);
+  const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const declaracion = draft.guerra.declarar;
   const max = CFG.diplomacia.accionesPorTurno;
   const usadas = draft.diplomacia.length;
 
-  const sumarAccion = (a: AccionDiplomatica) => {
-    if (usadas >= max) return;
-    setDraft({ diplomacia: [...draft.diplomacia, a] });
+  const verEnLista = (id: string) => {
+    const el = document.getElementById(`pais-${id}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.focus({ preventScroll: true });
   };
   const quitarAccion = (i: number) => setDraft({ diplomacia: draft.diplomacia.filter((_, j) => j !== i) });
 
@@ -105,12 +96,26 @@ export function Diplomacia() {
         </section>
       )}
 
+      <section className="card stack" aria-labelledby="mapa-titulo">
+        <div className="row spread">
+          <h2 id="mapa-titulo">La región</h2>
+          <IllustrativeBadge texto="Mapa esquemático, no a escala" />
+        </div>
+        <div className="mapa-layout">
+          <MapaSudamerica game={game} seleccionado={seleccionado} onSeleccionar={setSeleccionado} />
+          <div className="stack">
+            <FichaPais id={seleccionado} tipoTratado={tipoTratado} onDeclararGuerra={setDialogoGuerra} onVerEnLista={verEnLista} />
+            <LeyendaMapa />
+          </div>
+        </div>
+      </section>
+
       <section className="card stack" aria-labelledby="acciones-titulo">
         <h2 id="acciones-titulo">
           Acciones del trimestre ({usadas}/{max})
         </h2>
         {usadas === 0 ? (
-          <p className="small muted">Elegí acciones desde la lista de países.</p>
+          <p className="small muted">Elegí acciones desde el mapa o la lista de países.</p>
         ) : (
           <ul className="stack" style={{ margin: 0, paddingLeft: 18 }}>
             {draft.diplomacia.map((a, i) => (
@@ -167,13 +172,18 @@ export function Diplomacia() {
         {paises.map((id) => {
           const rel = game.relaciones[id] ?? 0;
           const tratados = game.tratados.filter((t) => t.con === id);
-          const firma = puedeFirmar(game, tipoTratado, id);
           return (
-            <article key={id} className="card stack" style={{ gap: 6 }} aria-label={`${nombrePais(id)}, relación ${fmt(rel, 0)}`}>
+            <article key={id} id={`pais-${id}`} tabIndex={-1} className="card stack" style={{ gap: 6 }} aria-label={`${nombrePais(id)}, relación ${fmt(rel, 0)}`}>
               <div className="row spread">
                 <strong>
                   {nombrePais(id)} {esVecino(game.paisId, id) && <span className="chip">VECINO</span>}{' '}
-                  {crisis?.con === id && <span className="chip" style={{ color: 'var(--color-bad)', borderColor: 'var(--color-bad)' }}>CRISIS</span>}
+                  {crisis?.con === id && <span className="chip" style={{ color: 'var(--color-bad)', borderColor: 'var(--color-bad)' }}>CRISIS</span>}{' '}
+                  {balanceTerritorial(game, id) > 0 && <span className="chip">OCUPÁS {fmt(balanceTerritorial(game, id) * 100, 0)}%</span>}
+                  {balanceTerritorial(game, id) < 0 && (
+                    <span className="chip" style={{ color: 'var(--color-bad)', borderColor: 'var(--color-bad)' }}>
+                      TE OCUPA {fmt(-balanceTerritorial(game, id) * 100, 0)}%
+                    </span>
+                  )}
                 </strong>
                 <span className={rel >= 0 ? 'good' : 'bad'}>{fmt(rel, 0)}</span>
               </div>
@@ -187,45 +197,58 @@ export function Diplomacia() {
                   ))}
                 </div>
               )}
-              <div className="row small" style={{ gap: 6 }}>
-                {ACCIONES.map((a) => (
-                  <button
-                    key={a.tipo}
-                    type="button"
-                    title={a.ayuda}
-                    disabled={usadas >= max}
-                    onClick={() => sumarAccion({ tipo: a.tipo, con: id })}
-                    aria-label={`${a.label} con ${nombrePais(id)}. ${a.ayuda}`}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={!firma.ok}
-                  title={firma.ok ? `Proponer ${NOMBRE_TRATADO[tipoTratado]}` : firma.motivo}
-                  aria-label={firma.ok ? `Proponer tratado de ${NOMBRE_TRATADO[tipoTratado]} con ${nombrePais(id)}` : `No se puede proponer: ${firma.motivo}`}
-                  onClick={() => setDraft({ tratado: { tipo: tipoTratado, con: id }, ley: null, guerra: { ...draft.guerra, declarar: null } })}
-                >
-                  Proponer
-                </button>
-                <button
-                  type="button"
-                  disabled={!!game.guerra || !!declaracion}
-                  onClick={() => setDialogoGuerra(id)}
-                  aria-label={`Declarar la guerra a ${nombrePais(id)}…`}
-                  title={game.guerra ? 'Ya hay un conflicto en curso.' : undefined}
-                  style={{ color: 'var(--color-bad)' }}
-                >
-                  Declarar guerra…
-                </button>
-              </div>
+              <AccionesPais id={id} tipoTratado={tipoTratado} onDeclararGuerra={setDialogoGuerra} />
             </article>
           );
         })}
       </section>
       <DeclararGuerraDialog contra={dialogoGuerra} onClose={() => setDialogoGuerra(null)} />
     </main>
+  );
+}
+
+interface FichaProps {
+  id: string | null;
+  tipoTratado: TipoTratado;
+  onDeclararGuerra: (id: string) => void;
+  onVerEnLista: (id: string) => void;
+}
+
+/** Ficha del país elegido en el mapa: situación y las mismas acciones que la lista. */
+function FichaPais({ id, tipoTratado, onDeclararGuerra, onVerEnLista }: FichaProps) {
+  const game = useGame((s) => s.game)!;
+  if (!id) return <p className="small muted">Tocá un país del mapa (o recorrelo con Tab) para ver su situación y actuar.</p>;
+  const sit = situacionPais(game, id);
+  if (sit.esJugador) {
+    return (
+      <div className="stack" aria-live="polite" style={{ gap: 6 }}>
+        <h3>{nombrePais(id)} (tu país)</h3>
+        <p className="small muted">Capacidad militar {fmt(sit.capacidad, 0)}/100. Tu situación interna está en el Panel.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="stack" aria-live="polite" style={{ gap: 6 }}>
+      <div className="row spread">
+        <h3 style={{ margin: 0 }}>
+          {nombrePais(id)} {sit.vecino && <span className="chip">VECINO</span>}
+        </h3>
+        <span className={sit.relacion >= 0 ? 'good' : 'bad'}>Relación {fmt(sit.relacion, 0)}</span>
+      </div>
+      <Bar value={sit.relacion + 100} max={200} label={`Relación con ${nombrePais(id)}`} color={sit.relacion >= 0 ? 'var(--color-good)' : 'var(--color-bad)'} />
+      {sit.guerra && <p className="bad small">En guerra. El conflicto se maneja en la tarjeta de arriba.</p>}
+      {sit.crisis && <p className="bad small">Crisis de frontera, nivel {sit.crisis}/3.</p>}
+      <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+        <li>Tratados: {sit.tratados.length ? sit.tratados.map((t) => NOMBRE_TRATADO[t]).join(', ') : 'ninguno'}</li>
+        <li>Capacidad militar: {fmt(sit.capacidad, 0)}/100 (la tuya: {fmt(game.ind.capacidadMilitar, 0)})</li>
+        <li>Peso comercial: {fmt(sit.pesoComercial * 100, 0)}/100</li>
+        {sit.territorio > 0 && <li className="good">Administrás {fmt(sit.territorio * 100, 0)}% de la franja fronteriza de {nombrePais(id)}.</li>}
+        {sit.territorio < 0 && <li className="bad">{nombrePais(id)} ocupa {fmt(-sit.territorio * 100, 0)}% de la franja fronteriza propia.</li>}
+      </ul>
+      <AccionesPais id={id} tipoTratado={tipoTratado} onDeclararGuerra={onDeclararGuerra} />
+      <button type="button" className="ghost small" onClick={() => onVerEnLista(id)}>
+        Ver en la lista
+      </button>
+    </div>
   );
 }

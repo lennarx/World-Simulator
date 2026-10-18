@@ -3,6 +3,7 @@ import { getPais } from '../../data/countries';
 import { TITULOS_FINAL } from '../../data/texts';
 import { Bar } from '../components/Bar';
 import { IllustrativeBadge } from '../components/IllustrativeBadge';
+import { LeyendaMapa, MapaSudamerica } from '../components/MapaSudamerica';
 import { nombrePais, relacionPromedio, type TipoResultadoGuerra } from '../../engine';
 import { fmt, INDICADORES } from '../format';
 import { borrarLocal, exportarArchivo } from '../save';
@@ -102,6 +103,13 @@ export function Final() {
                 </li>
               ))}
               {game.guerra && <li>{nombrePais(game.guerra.contra)}: conflicto sin resolver al final del mandato.</li>}
+              {game.territorios.map((t) => (
+                <li key={`${t.ocupante}-${t.de}`} className={t.ocupante === game.paisId ? 'good' : 'bad'}>
+                  {t.ocupante === game.paisId
+                    ? `Territorio administrado: ${fmt(t.profundidad * 100, 0)}% de la franja fronteriza de ${nombrePais(t.de)}.`
+                    : `Territorio propio ocupado por ${nombrePais(t.ocupante)}: ${fmt(t.profundidad * 100, 0)}% de la franja.`}
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -109,6 +117,12 @@ export function Final() {
           <span>Bonus por reelección</span>
           <span>+{f.legado.bonusReeleccion}</span>
         </div>
+      </section>
+
+      <section className="card stack" aria-labelledby="region-final">
+        <h2 id="region-final">Cómo quedó la región</h2>
+        <MapaSudamerica game={game} compacto />
+        <LeyendaMapa />
       </section>
 
       <section className="card grid" aria-label="Evolución">

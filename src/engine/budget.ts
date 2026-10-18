@@ -2,6 +2,7 @@
 // Convención: todo en % del PBI ANUAL. Un turno es un trimestre, así que los flujos
 // que impactan stocks (deuda, emisión) se dividen por CFG.trimestresPorAnio.
 import { CFG } from '../data/config';
+import { bonusTerritorial } from './territory';
 import { AREAS, type Decisiones, type GameState, type Presupuesto } from './types';
 import { clamp } from './util';
 
@@ -24,7 +25,7 @@ export function interesesExigibles(state: GameState): number {
 }
 
 export function recaudacionEfectiva(state: GameState, impuestos: number): number {
-  return Math.max(0, impuestos + state.mods.recaudacion);
+  return Math.max(0, impuestos + state.mods.recaudacion + bonusTerritorial(state).recaudacion);
 }
 
 export function costoConcesiones(state: GameState, concesiones: Record<string, number>): number {

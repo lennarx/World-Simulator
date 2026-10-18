@@ -1,7 +1,7 @@
 // Guardado: localStorage (siempre con try/catch: modo privado, cuota llena, etc.) + export/import JSON.
 import { relacionesIniciales, STATE_VERSION, type Decisiones, type EntradaParte, type GameState } from '../engine';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 const KEY = 'simgob:partida';
 
 export interface ParteTurno {
@@ -26,6 +26,7 @@ export function crearSave(state: GameState, draft: Decisiones | null, partes: Pa
  * Migraciones de saves viejos, encadenadas (v1 -> v2 -> v3 ...).
  * - v1 (Fase 1) -> v2 (Fase 2): relaciones, tratados y crisis.
  * - v2 (Fase 2) -> v3 (Fase 3): guerras pasadas, sanciones y decisión de guerra en el borrador.
+ * - v3 (Fase 3) -> v4 (Fase 4): territorios ocupados (conquista permanente).
  * Si cambia la forma del estado, sumá un paso acá y subí SAVE_VERSION y STATE_VERSION.
  */
 export function migrarSave(d: Partial<SaveFile>): Partial<SaveFile> {
@@ -40,6 +41,9 @@ export function migrarSave(d: Partial<SaveFile>): Partial<SaveFile> {
     const state = { ...out.state, version: 3, guerrasPasadas: [], sanciones: [] };
     const draft = out.draft ? { ...out.draft, guerra: { declarar: null, siRechaza: 'desistir' as const, esfuerzo: null, armisticio: false } } : null;
     out = { ...out, version: 3, state, draft };
+  }
+  if (out.version === 3 && out.state) {
+    out = { ...out, version: 4, state: { ...out.state, version: 4, territorios: [] } };
   }
   return out;
 }
@@ -56,7 +60,7 @@ export function validarSave(data: unknown): SaveFile | string {
   if (s.version !== STATE_VERSION) return 'La partida es de otra versión del motor.';
   if (Object.values(s.ind).some((v) => typeof v !== 'number' || !Number.isFinite(v))) return 'La partida tiene valores inválidos.';
   if (!s.relaciones || typeof s.relaciones !== 'object' || !Array.isArray(s.tratados)) return 'A la partida le faltan datos diplomáticos.';
-  if (!Array.isArray(s.guerrasPasadas) || !Array.isArray(s.sanciones)) return 'A la partida le faltan datos militares.';
+  if (!Array.isArray(s.guerrasPasadas) || !Array.isArray(s.sanciones) || !Array.isArray(s.territorios)) return 'A la partida le faltan datos militares.';
   return { ...(d as SaveFile), partes: Array.isArray(d.partes) ? d.partes : [], draft: d.draft ?? null };
 }
 
