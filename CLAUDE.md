@@ -354,7 +354,13 @@ con quien escala crisis (populista). Pacifista = equilibrada porque casi nunca l
       seleccionado, cada país es `role=button` con Tab/Enter/Espacio y `aria-label` descriptivo, área táctil para los
       chicos) + `LeyendaMapa` (HTML). Pestaña Exterior: mapa + **ficha del país** con las mismas acciones que la lista
       (`AccionesPais`, extraído de la tarjeta). Mapa compacto (solo lectura) en Panel y Final. Tokens `--color-map-*`.
-- [x] Tests: 69 (nuevos: `tests/mapa.test.ts`, `tests/engine/region.test.ts`). Sim sin cambios (no toca el motor).
+- [x] Malvinas: dibujadas como **territorio en disputa** (trama neutra, "administradas de facto por el Reino Unido"),
+      sin asignar a ningún país y agrandadas ×1,6 para que se vean. Gancho: guerra futura por las islas (sumar al RU como actor).
+- [x] Mapa vistoso: mar con degradé y cuadrícula, sombra de la tierra, entrada escalonada de países, transición de color
+      al cambiar la relación, resaltado + **cartel** al pasar/enfocar, selección con borde animado, **líneas** desde tu país
+      (tratados que fluyen, tensión de crisis/guerra), pulsos en crisis/guerra, "+5 / −8" del último trimestre
+      (`relacionesPrevias` en el store de UI, no se guarda). Todo CSS/SVG, sin librerías; `prefers-reduced-motion` lo apaga.
+- [x] Tests: 70 (nuevos: `tests/mapa.test.ts`, `tests/engine/region.test.ts`). Sim sin cambios (no toca el motor).
 
 **Verificado (Chromium, 390×844 y 1280×900, temas claro y oscuro):** 12 países enfocables con nombre accesible,
 Enter abre la ficha, toque en Uruguay selecciona, "Visita" desde la ficha suma la acción, crisis y guerra marcadas,
@@ -502,7 +508,10 @@ sección 6. Opcional antes: revisar Brasil (equilibrada 71%, austeridad 0%) y la
 - Perder una guerra no termina la partida: hunde indicadores y multiplica el riesgo de golpe (decisión del arquitecto).
 - La guerra vive en la pestaña "Exterior" para no tener 6 pestañas en el celular.
 
-- Fase 4: el mapa es dibujo propio low-poly (sin trazado oficial ni islas en disputa); Guayana Francesa se dibuja
+- Malvinas (pedido del arquitecto): en disputa, administradas de facto por el RU, trama neutra. A futuro se podrá
+  declarar la guerra al RU para recuperarlas (requiere un actor extrarregional). El Esequibo se dibuja como parte de
+  Guyana (frontera de facto) sin marcar el reclamo venezolano.
+- Fase 4: el mapa es dibujo propio low-poly (sin trazado oficial); Guayana Francesa se dibuja
   neutra porque no es uno de los 12. "Vecino" no se marca en el mapa (la geografía ya lo muestra; va en el aria-label).
 - El mapa es solo UI + datos: no cambia el motor ni el balance. `situacionPais` vive en `engine/region.ts`.
 - Roadmap reordenado tras jugar el MVP: Mapa → Ciclo político → Eventos/IA reactiva → Herramientas → IA completa.

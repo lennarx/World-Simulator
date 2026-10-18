@@ -160,5 +160,29 @@ export const MAPA_PAISES: Record<string, FormaPais> = {
   uruguay: forma('URU', [-56.0, -32.6], armar('c.uruguay', '-f.uruguayArgentina', 'f.uruguayBrasil')),
 };
 
-/** Territorio no soberano (no es uno de los 12): se dibuja neutro y sin interacción. */
-export const MAPA_OTROS: string[] = [armar('c.guayanaFrancesa', '-f.guayanaFrancesaBrasil', 'f.surinamGuayanaFrancesa')];
+export interface TerritorioExtra {
+  id: string;
+  nombre: string;
+  d: string;
+  /** En disputa: se dibuja con trama y sin asignarlo a ningún país. */
+  disputa?: { nota: string; etiqueta: [number, number]; abrev: string };
+}
+
+/** Agranda una isla alrededor de un centro: a escala real serían apenas un punto. */
+const agrandar = (pts: Pt[], [cx, cy]: Pt, k: number): Pt[] => pts.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
+const CENTRO_MALVINAS: Pt = [-59.5, -51.65];
+
+const MALVINAS_OESTE: Pt[] = [[-61.3, -51.3], [-60.1, -51.0], [-59.6, -51.45], [-60.3, -52.2], [-61.2, -51.85]];
+const MALVINAS_ESTE: Pt[] = [[-59.3, -51.4], [-58.4, -51.3], [-57.7, -51.6], [-58.3, -51.85], [-58.9, -52.3], [-59.6, -51.9]];
+
+/** Territorios que no son uno de los 12: neutros, sin acciones. */
+export const MAPA_OTROS: TerritorioExtra[] = [
+  { id: 'guayana-francesa', nombre: 'Guayana Francesa', d: armar('c.guayanaFrancesa', '-f.guayanaFrancesaBrasil', 'f.surinamGuayanaFrancesa') },
+  {
+    id: 'malvinas',
+    nombre: 'Islas Malvinas',
+    d: anillo(agrandar(MALVINAS_OESTE, CENTRO_MALVINAS, 1.6)) + anillo(agrandar(MALVINAS_ESTE, CENTRO_MALVINAS, 1.6)),
+    // Gancho a futuro: un conflicto por la soberanía de las islas (requiere sumar al Reino Unido como actor).
+    disputa: { nota: 'Soberanía en disputa. Administradas de facto por el Reino Unido.', etiqueta: proyectar([-59.5, -53.6]), abrev: 'MALVINAS' },
+  },
+];

@@ -19,7 +19,16 @@ describe('mapa esquemático', () => {
       expect(dentro(f.etiqueta), id).toBe(true);
       expect(f.abrev).toMatch(/^[A-Z]{3}$/);
     }
-    for (const d of MAPA_OTROS) expect(coords(d).every(dentro)).toBe(true);
+    for (const t of MAPA_OTROS) {
+      expect(coords(t.d).every(dentro), t.id).toBe(true);
+      if (t.disputa) expect(dentro(t.disputa.etiqueta), t.id).toBe(true);
+    }
+  });
+
+  it('las Malvinas aparecen como territorio en disputa, sin asignar a ningún país', () => {
+    const malvinas = MAPA_OTROS.find((t) => t.id === 'malvinas');
+    expect(malvinas?.disputa?.nota).toMatch(/disputa/i);
+    expect(Object.keys(MAPA_PAISES)).not.toContain('malvinas');
   });
 
   it('los vecinos comparten al menos un vértice de frontera', () => {

@@ -13,6 +13,8 @@ interface Store {
   partes: ParteTurno[];
   pantalla: Pantalla;
   guardadoOk: boolean;
+  /** Relaciones antes del último cierre de trimestre (solo para animar cambios en el mapa; no se guarda). */
+  relacionesPrevias: Record<string, number> | null;
   /** Si está activo, al cerrar el trimestre el pago de deuda nunca queda bajo los intereses exigibles. */
   autoIntereses: boolean;
   setAutoIntereses: (v: boolean) => void;
@@ -34,6 +36,7 @@ export const useGame = create<Store>((set, get) => ({
   partes: [],
   pantalla: 'inicio',
   guardadoOk: true,
+  relacionesPrevias: null,
   autoIntereses: true,
   setAutoIntereses: (autoIntereses) => set({ autoIntereses }),
 
@@ -41,12 +44,12 @@ export const useGame = create<Store>((set, get) => ({
     const seed = semilla?.trim() ? semilla.trim() : Math.floor(Math.random() * 2 ** 31);
     const game = createGame(getPais(paisId), seed);
     const draft = decisionesActuales(game);
-    set({ game, draft, partes: [], pantalla: 'panel', guardadoOk: persistir(game, draft, []) });
+    set({ game, draft, partes: [], pantalla: 'panel', relacionesPrevias: null, guardadoOk: persistir(game, draft, []) });
   },
 
   cargarDesde(save) {
     const draft = save.draft ?? decisionesActuales(save.state);
-    set({ game: save.state, draft, partes: save.partes, pantalla: save.state.final ? 'final' : 'panel' });
+    set({ game: save.state, draft, partes: save.partes, relacionesPrevias: null, pantalla: save.state.final ? 'final' : 'panel' });
     set({ guardadoOk: persistir(save.state, draft, save.partes) });
   },
 
@@ -80,7 +83,7 @@ export const useGame = create<Store>((set, get) => ({
       nextDraft.presupuesto.deuda = Math.max(nextDraft.presupuesto.deuda, minimo);
     }
     const nuevasPartes = [...partes, { turno: state.turno, entradas: report }];
-    set({ game: state, draft: nextDraft, partes: nuevasPartes, pantalla: 'parte', guardadoOk: persistir(state, nextDraft, nuevasPartes) });
+    set({ game: state, draft: nextDraft, partes: nuevasPartes, relacionesPrevias: game.relaciones, pantalla: 'parte', guardadoOk: persistir(state, nextDraft, nuevasPartes) });
   },
 
   irA(pantalla) {
@@ -89,7 +92,7 @@ export const useGame = create<Store>((set, get) => ({
   },
 
   salir() {
-    set({ game: null, draft: null, partes: [], pantalla: 'inicio' });
+    set({ game: null, draft: null, partes: [], relacionesPrevias: null, pantalla: 'inicio' });
   },
 
   snapshot() {
